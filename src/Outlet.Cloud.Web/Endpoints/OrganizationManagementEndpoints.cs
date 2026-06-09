@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Outlet.Cloud.Application.Organizations;
 using Outlet.Cloud.Application.Ports;
 using Outlet.Cloud.Application.Registry;
+using Outlet.Cloud.Application.Subscriptions;
 using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Web.Composition;
 using Outlet.Identity.Application.AccessTokens;
@@ -23,6 +24,9 @@ namespace Outlet.Cloud.Web.Endpoints;
 /// </summary>
 public static class OrganizationManagementEndpoints
 {
+    /// <summary>Default trial length (CLAUDE.md: 14 days, parameterizable).</summary>
+    private const int TrialDays = 14;
+
     public static void MapOrganizationManagement(this WebApplication app)
     {
         var group = app.MapGroup("/organizations").RequireAuthorization();
@@ -54,10 +58,19 @@ public static class OrganizationManagementEndpoints
             }));
         });
 
-        group.MapPost("/", async (CreateOrganizationBody body, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, CreateOrganizationUseCase create) =>
+        group.MapPost("/", async (CreateOrganizationBody body, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, CreateOrganizationUseCase create, StartTrialUseCase startTrial) =>
         {
-            var callerId = CallerId(principal, users);
-            var result = await create.HandleAsync(new CreateOrganizationCommand(Guid.NewGuid(), body.Slug, body.Name, callerId));
+            var user = await users.GetUserAsync(principal);
+            if (user is null)
+                return Results.Unauthorized();
+
+            var result = await create.HandleAsync(new CreateOrganizationCommand(Guid.NewGuid(), body.Slug, body.Name, user.Id));
+
+            // A new organization starts on a frictionless Pro trial; entitlements (publish,
+            // quotas) are decided server-side from this subscription thereafter.
+            if (result.IsSuccess)
+                await startTrial.HandleAsync(new StartTrialCommand(result.Value, user.Email ?? string.Empty, TrialDays));
+
             return result.ToHttp(id => Results.Created($"/organizations/{id}", new { organizationId = id }));
         });
 
@@ -208,6 +221,19 @@ public static class OrganizationManagementEndpoints
             IReadOnlyList<PublishedFileInput> files = [.. body.Files.Select(f => new PublishedFileInput(f.Path, f.Content))];
             var result = await publish.HandleAsync(new PublishItemCommand(organizationId, body.Name, body.Manifest.GetRawText(), files));
             return result.ToHttp(id => Results.Created($"/organizations/{organizationId}/registry/items/{body.Name}", new { publishedItemId = id }));
+        });
+
+        group.MapGet("/{organizationId:guid}/entitlements", async (Guid organizationId, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, IOrganizationRepository orgs, GetEntitlementsUseCase entitlements) =>
+        {
+            var callerId = CallerId(principal, users);
+            var org = await orgs.GetByIdAsync(OrganizationId.From(organizationId));
+            if (org is null)
+                return Results.NotFound();
+            if (RoleOf(org, callerId) is null)
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+
+            var result = await entitlements.HandleAsync(new GetEntitlementsQuery(organizationId));
+            return result.ToHttp(view => Results.Ok(view));
         });
 
         group.MapGet("/{organizationId:guid}/registry/items", async (Guid organizationId, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, IOrganizationRepository orgs, IPublishedItemRepository items) =>

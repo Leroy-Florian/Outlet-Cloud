@@ -1,6 +1,6 @@
-# Outlet Cloud — Guide projet (CLAUDE.md)
+# Outlet Platform — Guide projet (CLAUDE.md)
 
-> Repo **privé**. La CLI `outlet` et le moteur de registre (`Outlet.Core.*`) restent **publics** dans le repo `Outlet-CLI`. Ce repo héberge tout le **backend cloud** : registres privés hébergés, organisations, identité/accès, et (à venir) abonnement/essai.
+> Repo **privé** = **monorepo de tout le back Outlet**. La CLI `outlet` et le moteur de registre (`Outlet.Core.*`) restent **publics** dans le repo `Outlet-CLI` ; la frontière back ↔ CLI est **HTTP/JSON uniquement** (aucun binaire partagé — la CLI garde sa propre copie du Kernel). Ce repo héberge : registres privés hébergés, organisations, identité/accès, abonnement/essai, le **CRM**, le contenu registre dogfoodé (`registry/` + pipeline `tools/registry/`) et les **frontends** (`frontend/website` site Astro, `frontend/crm` dashboard React).
 
 ## Ce qu'est Outlet Cloud
 
@@ -15,12 +15,13 @@ Le **service backend hébergé** d'Outlet. Là où la CLI et le code copié rest
 
 ## Contextes bornés (bounded contexts)
 
-Le cloud est découpé en deux contextes isolés (cf. `BoundedContextIsolationTests`) — ils communiquent par **id / strings**, jamais en important les types de l'autre :
+Le back est découpé en trois contextes isolés (cf. `BoundedContextIsolationTests`) — ils communiquent par **id / strings**, jamais en important les types de l'autre :
 
-- **Identity** (`Outlet.Identity.*`) — utilisateurs + personal access tokens. Les scopes traversent la frontière en `string`, jamais en type Cloud.
-- **Cloud** (`Outlet.Cloud.*`) — organisations, memberships, registres publiés, abonnement.
+- **Identity** (`Outlet.Identity.*`, `src/Identity/`) — utilisateurs + personal access tokens. Les scopes traversent la frontière en `string`, jamais en type Cloud.
+- **Cloud** (`Outlet.Cloud.*`, `src/Cloud/`) — organisations, memberships, registres publiés, abonnement.
+- **Crm** (`Outlet.Crm.*`, `src/Crm/`) — prospects, paiements, produits, métriques.
 
-`Outlet.Cloud.Web` est la **composition root** : c'est le seul à câbler Identity + Cloud ensemble.
+Les **hosts** (`src/Hosts/`) sont les composition roots : seuls endroits où les contextes sont câblés ensemble (`Outlet.Cloud.Web` compose Identity + Cloud ; `Outlet.Crm.Web` compose le Crm). Identity émet un user → `Guid` → Cloud le reçoit comme `MemberUserId.From(guid)` ; le host fait le pont via primitives.
 
 ## Architecture technique (hexagonal + DDD)
 
@@ -28,11 +29,11 @@ Le cloud est découpé en deux contextes isolés (cf. `BoundedContextIsolationTe
 
 | Couche | Peut dépendre de |
 |---|---|
-| `Outlet.Kernel.Shared` | rien (jamais d'une couche métier) |
-| `Outlet.{Identity,Cloud}.Domain` | Kernel uniquement |
-| `Outlet.{Identity,Cloud}.Application` | Domain + Kernel |
-| `Outlet.{Identity,Cloud}.Infrastructure` | Application + Domain + Kernel |
-| `Outlet.Cloud.Web` | tout (composition root : Cloud + Identity) |
+| `Outlet.Kernel.Shared` | rien (jamais d'une couche métier) — **LE kernel unique** du back |
+| `Outlet.{Identity,Cloud,Crm}.Domain` | Kernel uniquement |
+| `Outlet.{Identity,Cloud,Crm}.Application` | son Domain + Kernel |
+| `Outlet.{Identity,Cloud,Crm}.Infrastructure` | son Application/Domain + Kernel |
+| `src/Hosts/*` | plusieurs contextes (composition roots) |
 
 ### Langage du domaine
 
@@ -126,7 +127,11 @@ Trialing ──convert──▶ Active
 ## Commandes utiles
 
 ```bash
-dotnet build Outlet.Cloud.slnx -c Release          # 0 warning exigé (IDE03xx = erreurs)
-dotnet test Outlet.Cloud.slnx --filter "Category!=Live"
+dotnet build Outlet.Platform.slnx -c Release       # 0 warning exigé (IDE03xx = erreurs)
+dotnet test Outlet.Platform.slnx --filter "Category!=Live"
 dotnet stryker                                      # mutation testing (stryker-config.json)
+
+cd frontend/website && npm ci && npm run build      # site Astro
+cd frontend/crm     && npm ci && npm run build      # dashboard CRM
+./tools/registry/publish.sh                         # build + publish du registre produit
 ```

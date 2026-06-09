@@ -8,7 +8,6 @@ Monorepo **privé** du backend d'[Outlet](https://github.com/Leroy-Florian/Outle
 - **Cloud** (`src/Cloud`) : organisations & membres, registres privés hébergés, abonnement/essai (`Subscription`, entitlements 100 % serveur).
 - **CRM** (`src/Crm`) : suivi prospects, paiements, produits, métriques.
 - **Hosts** (`src/Hosts`) : composition roots ASP.NET — seul endroit où les contextes sont câblés ensemble.
-- **Registre produit** (`registry/`, `tools/registry/`) : contenu dogfoodé, publié vers Cloud.
 - **Frontends** (`frontend/website` site Astro, `frontend/crm` dashboard React).
 
 L'autorisation est **entièrement serveur** : la CLI s'authentifie (`outlet login` → token), l'API décide des droits à chaque requête.
@@ -24,7 +23,6 @@ src/Cloud/Outlet.Cloud.{Domain,Application,Infrastructure}
 src/Crm/Outlet.Crm.{Domain,Application,Infrastructure}
 src/Hosts/{Outlet.Cloud.Web,Outlet.Crm.Web}
 tests/                                    unit + integration + architecture tests
-registry/  dist/registry/  tools/registry/
 frontend/{website,crm}
 ```
 

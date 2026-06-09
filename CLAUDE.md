@@ -1,6 +1,6 @@
 # Outlet Platform — Guide projet (CLAUDE.md)
 
-> Repo **privé** = **monorepo de tout le back Outlet**. La CLI `outlet` et le moteur de registre (`Outlet.Core.*`) restent **publics** dans le repo `Outlet-CLI` ; la frontière back ↔ CLI est **HTTP/JSON uniquement** (aucun binaire partagé — la CLI garde sa propre copie du Kernel). Ce repo héberge : registres privés hébergés, organisations, identité/accès, abonnement/essai, le **CRM**, le contenu registre dogfoodé (`registry/` + pipeline `tools/registry/`) et les **frontends** (`frontend/website` site Astro, `frontend/crm` dashboard React).
+> Repo **privé** = **monorepo de tout le back Outlet**. La CLI `outlet` et le moteur de registre (`Outlet.Core.*`) restent **publics** dans le repo `Outlet-CLI` ; la frontière back ↔ CLI est **HTTP/JSON uniquement** (aucun binaire partagé — la CLI garde sa propre copie du Kernel). Ce repo héberge : registres privés hébergés, organisations, identité/accès, abonnement/essai, le **CRM**, et les **frontends** (`frontend/website` site Astro, `frontend/crm` dashboard React).
 
 ## Ce qu'est Outlet Cloud
 
@@ -133,5 +133,4 @@ dotnet stryker                                      # mutation testing (stryker-
 
 cd frontend/website && npm ci && npm run build      # site Astro
 cd frontend/crm     && npm ci && npm run build      # dashboard CRM
-./tools/registry/publish.sh                         # build + publish du registre produit
 ```

@@ -84,12 +84,12 @@ public sealed class DateTimeProviderConventionTests
         for (var i = 0; i < 12 && current is not null; i++)
         {
             if (Directory.Exists(Path.Combine(current, "src"))
-                && File.Exists(Path.Combine(current, "Outlet.Cloud.slnx")))
+                && File.Exists(Path.Combine(current, "Outlet.Platform.slnx")))
                 return current;
             current = Path.GetDirectoryName(current);
         }
 
         throw new InvalidOperationException(
-            $"Could not locate repository root (Outlet.Cloud.slnx) starting from {AppContext.BaseDirectory}.");
+            $"Could not locate repository root (Outlet.Platform.slnx) starting from {AppContext.BaseDirectory}.");
     }
 }

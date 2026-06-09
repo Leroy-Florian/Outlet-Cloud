@@ -13,8 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Outlet.Cloud.Application\Outlet.Cloud.Application.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Cloud.Domain\Outlet.Cloud.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Application\Outlet.Cloud.Application.csproj" />
+    <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Domain\Outlet.Cloud.Domain.csproj" />
     <ProjectReference Include="..\..\src\Kernel.Shared\Outlet.Kernel.Shared\Outlet.Kernel.Shared.csproj" />
   </ItemGroup>
 

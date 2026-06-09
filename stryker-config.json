@@ -35,7 +35,7 @@
       "GetHashCode",
       "Equals"
     ],
-    "solution": "Outlet.slnx",
+    "solution": "Outlet.Platform.slnx",
     "since": {
       "enabled": false
     },

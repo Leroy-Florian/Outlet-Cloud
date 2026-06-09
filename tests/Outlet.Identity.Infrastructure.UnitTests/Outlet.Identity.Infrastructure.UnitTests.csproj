@@ -14,9 +14,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Outlet.Identity.Infrastructure\Outlet.Identity.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Identity.Application\Outlet.Identity.Application.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Identity.Domain\Outlet.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Outlet.Identity.Infrastructure\Outlet.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Outlet.Identity.Application\Outlet.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Outlet.Identity.Domain\Outlet.Identity.Domain.csproj" />
     <ProjectReference Include="..\..\src\Kernel.Shared\Outlet.Kernel.Shared\Outlet.Kernel.Shared.csproj" />
   </ItemGroup>
 

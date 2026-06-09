@@ -165,13 +165,13 @@ public sealed class PrimaryConstructorConventionTests
         var dir = Path.GetDirectoryName(callerPath)!;
         for (var i = 0; i < 10; i++)
         {
-            if (Directory.Exists(Path.Combine(dir, "src")) && File.Exists(Path.Combine(dir, "Outlet.Cloud.slnx")))
+            if (Directory.Exists(Path.Combine(dir, "src")) && File.Exists(Path.Combine(dir, "Outlet.Platform.slnx")))
                 return dir;
             dir = Path.GetDirectoryName(dir)!;
             if (string.IsNullOrEmpty(dir)) break;
         }
 
         throw new InvalidOperationException(
-            $"Could not locate repository root from {callerPath}. Expected to find a directory with 'src/' and 'Outlet.Cloud.slnx'.");
+            $"Could not locate repository root from {callerPath}. Expected to find a directory with 'src/' and 'Outlet.Platform.slnx'.");
     }
 }

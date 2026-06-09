@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Outlet.Kernel.Shared\Outlet.Kernel.Shared.csproj" />
+    <ProjectReference Include="..\..\src\Kernel.Shared\Outlet.Kernel.Shared\Outlet.Kernel.Shared.csproj" />
   </ItemGroup>
 
   <ItemGroup>

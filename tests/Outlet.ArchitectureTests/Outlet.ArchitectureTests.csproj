@@ -18,12 +18,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Outlet.Identity.Domain\Outlet.Identity.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Identity.Application\Outlet.Identity.Application.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Identity.Infrastructure\Outlet.Identity.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Cloud.Domain\Outlet.Cloud.Domain.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Cloud.Application\Outlet.Cloud.Application.csproj" />
-    <ProjectReference Include="..\..\src\Outlet.Cloud.Infrastructure\Outlet.Cloud.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Outlet.Identity.Domain\Outlet.Identity.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Outlet.Identity.Application\Outlet.Identity.Application.csproj" />
+    <ProjectReference Include="..\..\src\Identity\Outlet.Identity.Infrastructure\Outlet.Identity.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Domain\Outlet.Cloud.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Application\Outlet.Cloud.Application.csproj" />
+    <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Infrastructure\Outlet.Cloud.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Kernel.Shared\Outlet.Kernel.Shared\Outlet.Kernel.Shared.csproj" />
   </ItemGroup>
 

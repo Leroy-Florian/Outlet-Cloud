@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Outlet.Cloud.Application.Ports;
 using Outlet.Cloud.Infrastructure.Persistence;
+using Outlet.Cloud.Infrastructure.TrialEligibility;
 
 namespace Outlet.Cloud.Infrastructure.DependencyInjection;
 
@@ -20,6 +21,8 @@ public static class CloudInfrastructureServiceCollectionExtensions
         services.AddDbContext<CloudDbContext>(configureDatabase);
         services.AddScoped<IOrganizationRepository, EfOrganizationRepository>();
         services.AddScoped<IPublishedItemRepository, EfPublishedItemRepository>();
+        services.AddScoped<ISubscriptionRepository, EfSubscriptionRepository>();
+        services.AddSingleton<ITrialEligibilityPolicy, DefaultTrialEligibilityPolicy>();
 
         return services;
     }

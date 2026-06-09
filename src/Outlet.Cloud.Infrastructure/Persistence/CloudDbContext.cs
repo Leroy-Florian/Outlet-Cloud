@@ -2,12 +2,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Outlet.Cloud.Infrastructure.Persistence;
 
-/// <summary>EF Core context for the Cloud bounded context (organizations + memberships).</summary>
+/// <summary>EF Core context for the Cloud bounded context (organizations, registries, subscriptions).</summary>
 public sealed class CloudDbContext(DbContextOptions<CloudDbContext> options) : DbContext(options)
 {
     public DbSet<OrganizationRecord> Organizations => Set<OrganizationRecord>();
     public DbSet<MembershipRecord> OrganizationMembers => Set<MembershipRecord>();
     public DbSet<PublishedItemRecord> PublishedItems => Set<PublishedItemRecord>();
+    public DbSet<SubscriptionRecord> Subscriptions => Set<SubscriptionRecord>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -51,6 +52,15 @@ public sealed class CloudDbContext(DbContextOptions<CloudDbContext> options) : D
             builder.ToTable("published_item_files");
             builder.HasKey(f => f.Id);
             builder.Property(f => f.Path).IsRequired();
+        });
+
+        modelBuilder.Entity<SubscriptionRecord>(builder =>
+        {
+            builder.ToTable("subscriptions");
+            builder.HasKey(s => s.Id);
+            builder.Property(s => s.Plan).IsRequired();
+            builder.Property(s => s.Status).IsRequired();
+            builder.HasIndex(s => s.OrganizationId).IsUnique();
         });
     }
 }

@@ -1,5 +1,4 @@
 using Outlet.Cloud.Application.Ports;
-using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Subscriptions;
 using Outlet.Kernel.Shared;
 
@@ -7,7 +6,7 @@ namespace Outlet.Cloud.Application.Subscriptions;
 
 /// <summary>
 /// The server-side authorization heart: resolves the <see cref="Entitlements"/> currently
-/// in force for an organization. Every cloud use case that gates a feature goes through here
+/// in force for an account. Every cloud use case that gates a feature goes through here
 /// instead of branching on status, so the trial/paid distinction lives in exactly one place.
 ///
 /// Performs LAZY expiry: a trialing subscription whose window has elapsed is transitioned to
@@ -16,9 +15,9 @@ namespace Outlet.Cloud.Application.Subscriptions;
 /// </summary>
 public sealed class SubscriptionEntitlementResolver(ISubscriptionRepository subscriptions, ICurrentDateTimeProvider clock)
 {
-    public async Task<Entitlements> ResolveAsync(OrganizationId organizationId, CancellationToken cancellationToken = default)
+    public async Task<Entitlements> ResolveAsync(AccountId accountId, CancellationToken cancellationToken = default)
     {
-        var subscription = await subscriptions.GetByOrganizationAsync(organizationId, cancellationToken);
+        var subscription = await subscriptions.GetByAccountAsync(accountId, cancellationToken);
         if (subscription is null)
             return Entitlements.None;
 

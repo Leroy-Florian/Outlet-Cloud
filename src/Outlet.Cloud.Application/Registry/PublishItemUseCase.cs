@@ -2,6 +2,7 @@ using Outlet.Cloud.Application.Ports;
 using Outlet.Cloud.Application.Subscriptions;
 using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Registry;
+using Outlet.Cloud.Domain.Subscriptions;
 using Outlet.Kernel.Shared;
 
 namespace Outlet.Cloud.Application.Registry;
@@ -20,7 +21,10 @@ public sealed record PublishItemCommand(
 /// Publishes an item into an org's registry. Upserts by (organization, name): a new
 /// publish of the same name replaces the previous content while keeping its id.
 /// </summary>
-public sealed class PublishItemUseCase(IPublishedItemRepository items, SubscriptionEntitlementResolver entitlements)
+public sealed class PublishItemUseCase(
+    IPublishedItemRepository items,
+    IOrganizationRepository organizations,
+    SubscriptionEntitlementResolver entitlements)
     : IUseCase<PublishItemCommand, Guid>
 {
     public async Task<Result<Guid>> HandleAsync(PublishItemCommand command, CancellationToken cancellationToken = default)
@@ -33,9 +37,13 @@ public sealed class PublishItemUseCase(IPublishedItemRepository items, Subscript
         if (nameResult.IsFailure)
             return Result<Guid>.Failure(nameResult.Error!);
 
-        // Server-side authorization: publishing is a Pro feature. An expired trial or a
-        // suspended subscription is read-only — the CLI surfaces this with a clear message.
-        var allowed = await entitlements.ResolveAsync(orgResult.Value!, cancellationToken);
+        var organization = await organizations.GetByIdAsync(orgResult.Value!, cancellationToken);
+        if (organization is null)
+            return Result<Guid>.Failure("Organization not found.");
+
+        // Server-side authorization: the private registry is hosted under the owner's plan.
+        // An expired trial or a suspended subscription is read-only — surfaced with a clear message.
+        var allowed = await entitlements.ResolveAsync(AccountId.From(organization.OwnerId.Value), cancellationToken);
         if (!allowed.CanPublishPrivateItems)
             return Result<Guid>.Failure(
                 "Your Outlet Cloud trial has ended or your subscription is suspended — reactivate to publish private items.");

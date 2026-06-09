@@ -1,6 +1,5 @@
 using Outlet.Cloud.Application.Subscriptions;
 using Outlet.Cloud.Application.UnitTests.Fakes;
-using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Subscriptions;
 
 namespace Outlet.Cloud.Application.UnitTests.Subscriptions;
@@ -16,12 +15,12 @@ public sealed class StartTrialUseCaseTests
     [Fact]
     public async Task Should_StartTrial_When_EligibleAndNoExistingSubscription()
     {
-        var orgId = Guid.NewGuid();
+        var accountId = Guid.NewGuid();
 
-        var result = await NewUseCase().HandleAsync(new StartTrialCommand(orgId, "dev@acme.test", 14));
+        var result = await NewUseCase().HandleAsync(new StartTrialCommand(accountId, "dev@acme.test", 14));
 
         result.IsSuccess.Should().BeTrue();
-        var stored = await _subscriptions.GetByOrganizationAsync(OrganizationId.From(orgId));
+        var stored = await _subscriptions.GetByAccountAsync(AccountId.From(accountId));
         stored!.Status.Should().Be(SubscriptionStatus.Trialing);
         stored.Trial!.EndsOn.Should().Be(Today.AddDays(14));
     }
@@ -38,13 +37,13 @@ public sealed class StartTrialUseCaseTests
     }
 
     [Fact]
-    public async Task Should_Fail_When_OrganizationAlreadyHasASubscription()
+    public async Task Should_Fail_When_AccountAlreadyHasASubscription()
     {
-        var orgId = Guid.NewGuid();
+        var accountId = Guid.NewGuid();
         _subscriptions.Seed(Subscription.CreateTrial(
-            SubscriptionId.From(Guid.NewGuid()), OrganizationId.From(orgId), TrialPeriod.Of(Today, 14)).Value!);
+            SubscriptionId.From(Guid.NewGuid()), AccountId.From(accountId), TrialPeriod.Of(Today, 14)).Value!);
 
-        var result = await NewUseCase().HandleAsync(new StartTrialCommand(orgId, "dev@acme.test", 14));
+        var result = await NewUseCase().HandleAsync(new StartTrialCommand(accountId, "dev@acme.test", 14));
 
         result.IsFailure.Should().BeTrue();
     }

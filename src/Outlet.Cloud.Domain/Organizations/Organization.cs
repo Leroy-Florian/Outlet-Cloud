@@ -21,6 +21,12 @@ public sealed class Organization : AggregateRoot<OrganizationId>
     private readonly List<Membership> _memberships;
     public IReadOnlyList<Membership> Memberships => _memberships;
 
+    /// <summary>
+    /// The account that hosts this organization's private registry (its first Owner).
+    /// An organization always keeps at least one owner, so this is always present.
+    /// </summary>
+    public MemberUserId OwnerId => _memberships.First(m => m.Role == OrganizationRole.Owner).Id;
+
     private Organization(OrganizationId id, OrganizationSlug slug, OrganizationName name)
         : base(id)
     {

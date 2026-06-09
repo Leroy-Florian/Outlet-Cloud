@@ -1,10 +1,10 @@
 namespace Outlet.Cloud.Infrastructure.Persistence;
 
-/// <summary>EF persistence model for an organization's subscription.</summary>
+/// <summary>EF persistence model for an account's subscription.</summary>
 public sealed class SubscriptionRecord
 {
     public Guid Id { get; set; }
-    public Guid OrganizationId { get; set; }
+    public Guid AccountId { get; set; }
     public string Plan { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
 

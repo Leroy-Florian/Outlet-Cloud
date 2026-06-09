@@ -1,12 +1,11 @@
 using Outlet.Cloud.Application.Ports;
-using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Subscriptions;
 using Outlet.Kernel.Shared;
 
 namespace Outlet.Cloud.Application.Subscriptions;
 
-/// <summary>Command: convert an organization's trial to a paying Pro plan.</summary>
-public sealed record ConvertSubscriptionCommand(Guid OrganizationId);
+/// <summary>Command: convert an account's trial to a paying Pro plan (mock/real checkout upstream).</summary>
+public sealed record ConvertSubscriptionCommand(Guid AccountId);
 
 /// <summary>
 /// Converts a trialing subscription to Active. The actual billing handshake (Stripe…) plugs in
@@ -17,13 +16,13 @@ public sealed class ConvertSubscriptionUseCase(ISubscriptionRepository subscript
 {
     public async Task<Result> HandleAsync(ConvertSubscriptionCommand command, CancellationToken cancellationToken = default)
     {
-        var orgResult = Guard.TryBuild(() => OrganizationId.From(command.OrganizationId), "Organization id is invalid.");
-        if (orgResult.IsFailure)
-            return Result.Failure(orgResult.Error!);
+        var accountResult = Guard.TryBuild(() => AccountId.From(command.AccountId), "Account id is invalid.");
+        if (accountResult.IsFailure)
+            return Result.Failure(accountResult.Error!);
 
-        var subscription = await subscriptions.GetByOrganizationAsync(orgResult.Value!, cancellationToken);
+        var subscription = await subscriptions.GetByAccountAsync(accountResult.Value!, cancellationToken);
         if (subscription is null)
-            return Result.Failure("This organization has no subscription to convert.");
+            return Result.Failure("This account has no subscription to convert.");
 
         var conversion = subscription.Convert(PlanTier.Pro);
         if (conversion.IsFailure)

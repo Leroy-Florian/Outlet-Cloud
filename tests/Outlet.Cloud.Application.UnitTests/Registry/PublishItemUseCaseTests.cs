@@ -12,18 +12,25 @@ public sealed class PublishItemUseCaseTests
     private static readonly DateOnly Today = new(2026, 6, 1);
 
     private readonly FakePublishedItemRepository _items = new();
+    private readonly FakeOrganizationRepository _orgs = new();
     private readonly FakeSubscriptionRepository _subscriptions = new();
+
     private readonly Guid _orgId = Guid.NewGuid();
+    private readonly Guid _ownerId = Guid.NewGuid();
 
     public PublishItemUseCaseTests()
     {
-        // Every org under test is on an active Pro trial unless a test overrides it.
+        _orgs.Seed(Organization.Create(
+            OrganizationId.From(_orgId), OrganizationSlug.From("acme"), OrganizationName.From("Acme"),
+            MemberUserId.From(_ownerId)).Value!);
+
+        // The owner account is on an active Pro trial unless a test overrides it.
         _subscriptions.Seed(Subscription.CreateTrial(
-            SubscriptionId.From(Guid.NewGuid()), OrganizationId.From(_orgId), TrialPeriod.Of(Today, 14)).Value!);
+            SubscriptionId.From(Guid.NewGuid()), AccountId.From(_ownerId), TrialPeriod.Of(Today, 14)).Value!);
     }
 
-    private PublishItemUseCase NewUseCase() =>
-        new(_items, new SubscriptionEntitlementResolver(_subscriptions, new FixedClock(Today)));
+    private PublishItemUseCase NewUseCase(DateOnly? asOf = null) =>
+        new(_items, _orgs, new SubscriptionEntitlementResolver(_subscriptions, new FixedClock(asOf ?? Today)));
 
     [Fact]
     public async Task Should_Publish_When_Valid()
@@ -70,30 +77,37 @@ public sealed class PublishItemUseCaseTests
     }
 
     [Fact]
-    public async Task Should_Fail_When_TrialHasExpired()
+    public async Task Should_Fail_When_OrganizationNotFound()
     {
-        var expiredOrg = Guid.NewGuid();
-        _subscriptions.Seed(Subscription.CreateTrial(
-            SubscriptionId.From(Guid.NewGuid()), OrganizationId.From(expiredOrg), TrialPeriod.Of(Today, 14)).Value!);
+        var result = await NewUseCase().HandleAsync(new PublishItemCommand(
+            Guid.NewGuid(), "email-smtp", "{}", [new PublishedFileInput("a.cs", "x")]));
 
-        // A resolver whose clock is past the trial window lazily suspends the subscription.
-        var useCase = new PublishItemUseCase(_items, new SubscriptionEntitlementResolver(_subscriptions, new FixedClock(Today.AddDays(30))));
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("not found");
+    }
 
-        var result = await useCase.HandleAsync(new PublishItemCommand(
-            expiredOrg, "email-smtp", "{}", [new PublishedFileInput("a.cs", "x")]));
+    [Fact]
+    public async Task Should_Fail_When_OwnerTrialHasExpired()
+    {
+        // A resolver whose clock is past the owner's trial window lazily suspends the account.
+        var result = await NewUseCase(asOf: Today.AddDays(30)).HandleAsync(new PublishItemCommand(
+            _orgId, "email-smtp", "{}", [new PublishedFileInput("a.cs", "x")]));
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Contain("trial has ended");
     }
 
     [Fact]
-    public async Task Should_Fail_When_OrganizationHasNoSubscription()
+    public async Task Should_Fail_When_OwnerHasNoSubscription()
     {
-        var orphanOrg = Guid.NewGuid();
-        var useCase = NewUseCase();
+        var orphanOwner = Guid.NewGuid();
+        _orgs.Seed(Organization.Create(
+            OrganizationId.From(Guid.NewGuid()), OrganizationSlug.From("orphan"), OrganizationName.From("Orphan"),
+            MemberUserId.From(orphanOwner)).Value!);
+        var orphanOrgId = (await _orgs.GetBySlugAsync(OrganizationSlug.From("orphan")))!.Id.Value;
 
-        var result = await useCase.HandleAsync(new PublishItemCommand(
-            orphanOrg, "email-smtp", "{}", [new PublishedFileInput("a.cs", "x")]));
+        var result = await NewUseCase().HandleAsync(new PublishItemCommand(
+            orphanOrgId, "email-smtp", "{}", [new PublishedFileInput("a.cs", "x")]));
 
         result.IsFailure.Should().BeTrue();
     }

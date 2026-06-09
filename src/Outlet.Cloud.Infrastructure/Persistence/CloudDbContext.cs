@@ -60,7 +60,7 @@ public sealed class CloudDbContext(DbContextOptions<CloudDbContext> options) : D
             builder.HasKey(s => s.Id);
             builder.Property(s => s.Plan).IsRequired();
             builder.Property(s => s.Status).IsRequired();
-            builder.HasIndex(s => s.OrganizationId).IsUnique();
+            builder.HasIndex(s => s.AccountId).IsUnique();
         });
     }
 }

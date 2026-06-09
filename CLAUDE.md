@@ -110,6 +110,13 @@ Trialing ──convert──▶ Active
 - **Impact CLI (repo public, minimal)** : `outlet login`/`whoami` (plan + jours restants), lecture du statut d'entitlement, messages d'erreur clairs (`outlet add` vers registre privé en essai expiré → message + exit code non nul).
 - Cycle de vie e-mails : J0 bienvenue · J-3/J-1 rappels · jour J expiration · préavis de purge.
 
+### État d'implémentation (branchement actuel)
+
+- **Ancrage compte** : `Subscription` est porté par un `AccountId` (= l'utilisateur Identity, croisé en GUID). Un registre privé d'org est hébergé **sous le plan de son Owner** (`Organization.OwnerId`).
+- **Inscription** (`/auth/register`) démarre l'essai 14 j (frictionless). **`/billing/subscribe`** → `Convert` (Active), **`/billing/cancel`** → `Cancel` (Suspended, lecture seule).
+- **Autorisation serveur** via `SubscriptionEntitlementResolver` (expiration paresseuse) : l'UI de gestion (`/organizations/*`) exige un abonnement en cours (402 sinon) ; `PublishItemUseCase` gate sur le plan de l'Owner + quota `MaxPrivateItems` ; le pull PAT (`registry.json`) reste lisible en Suspended, bloqué en Expired.
+- L'ancien flag `UserPlan` (Identity) a été **supprimé** : Identity reste découplé du billing.
+
 ## Garde-fous pour toute contribution
 
 - **Autorisation 100 % serveur** : aucune décision d'entitlement côté CLI.

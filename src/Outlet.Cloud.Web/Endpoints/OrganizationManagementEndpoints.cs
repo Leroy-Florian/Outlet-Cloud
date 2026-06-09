@@ -7,6 +7,7 @@ using Outlet.Cloud.Application.Ports;
 using Outlet.Cloud.Application.Registry;
 using Outlet.Cloud.Application.Subscriptions;
 using Outlet.Cloud.Domain.Organizations;
+using Outlet.Cloud.Domain.Subscriptions;
 using Outlet.Cloud.Web.Composition;
 using Outlet.Identity.Application.AccessTokens;
 using Outlet.Identity.Application.Ports;
@@ -24,23 +25,26 @@ namespace Outlet.Cloud.Web.Endpoints;
 /// </summary>
 public static class OrganizationManagementEndpoints
 {
-    /// <summary>Default trial length (CLAUDE.md: 14 days, parameterizable).</summary>
-    private const int TrialDays = 14;
-
     public static void MapOrganizationManagement(this WebApplication app)
     {
         var group = app.MapGroup("/organizations").RequireAuthorization();
 
         // Outlet Cloud (the whole management UI) is a paid offering: every endpoint here
-        // requires a Pro account. The free tier is the public registry via the CLI.
+        // requires an account whose subscription is in force (trial or paid). A suspended or
+        // expired subscription is read-only and is turned away with 402. The free tier is the
+        // public registry via the CLI. Authorization is decided 100% server-side, per request.
         group.AddEndpointFilter(async (context, next) =>
         {
             var users = context.HttpContext.RequestServices.GetRequiredService<UserManager<OutletIdentityUser>>();
+            var resolver = context.HttpContext.RequestServices.GetRequiredService<SubscriptionEntitlementResolver>();
+
             var user = await users.GetUserAsync(context.HttpContext.User);
             if (user is null)
                 return Results.Unauthorized();
-            if (user.Plan != UserPlan.Pro)
-                return Results.Json(new { error = "Outlet Cloud requires a Pro subscription." }, statusCode: StatusCodes.Status402PaymentRequired);
+
+            var entitlements = await resolver.ResolveAsync(AccountId.From(user.Id));
+            if (!entitlements.CanPublishPrivateItems)
+                return Results.Json(new { error = "Your Outlet Cloud subscription is not active. Start or reactivate a plan to manage organizations." }, statusCode: StatusCodes.Status402PaymentRequired);
 
             return await next(context);
         });
@@ -58,19 +62,10 @@ public static class OrganizationManagementEndpoints
             }));
         });
 
-        group.MapPost("/", async (CreateOrganizationBody body, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, CreateOrganizationUseCase create, StartTrialUseCase startTrial) =>
+        group.MapPost("/", async (CreateOrganizationBody body, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, CreateOrganizationUseCase create) =>
         {
-            var user = await users.GetUserAsync(principal);
-            if (user is null)
-                return Results.Unauthorized();
-
-            var result = await create.HandleAsync(new CreateOrganizationCommand(Guid.NewGuid(), body.Slug, body.Name, user.Id));
-
-            // A new organization starts on a frictionless Pro trial; entitlements (publish,
-            // quotas) are decided server-side from this subscription thereafter.
-            if (result.IsSuccess)
-                await startTrial.HandleAsync(new StartTrialCommand(result.Value, user.Email ?? string.Empty, TrialDays));
-
+            var callerId = CallerId(principal, users);
+            var result = await create.HandleAsync(new CreateOrganizationCommand(Guid.NewGuid(), body.Slug, body.Name, callerId));
             return result.ToHttp(id => Results.Created($"/organizations/{id}", new { organizationId = id }));
         });
 
@@ -232,7 +227,8 @@ public static class OrganizationManagementEndpoints
             if (RoleOf(org, callerId) is null)
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
 
-            var result = await entitlements.HandleAsync(new GetEntitlementsQuery(organizationId));
+            // The registry is hosted under the owner's plan, so report the owner account's entitlements.
+            var result = await entitlements.HandleAsync(new GetEntitlementsQuery(org.OwnerId.Value));
             return result.ToHttp(view => Results.Ok(view));
         });
 

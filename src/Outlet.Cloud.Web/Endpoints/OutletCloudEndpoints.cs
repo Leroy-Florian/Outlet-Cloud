@@ -1,6 +1,8 @@
 using Outlet.Cloud.Application.Ports;
+using Outlet.Cloud.Application.Subscriptions;
 using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Registry;
+using Outlet.Cloud.Domain.Subscriptions;
 using Outlet.Cloud.Web.Authentication;
 using Outlet.Kernel.Shared;
 
@@ -23,9 +25,10 @@ public static class OutletCloudEndpoints
             PersonalAccessTokenAuthenticator authenticator,
             IOrganizationRepository orgs,
             IPublishedItemRepository items,
+            SubscriptionEntitlementResolver entitlements,
             CancellationToken ct) =>
         {
-            var (org, scopeDenied) = await AuthorizeRead(slug, http, authenticator, orgs, ct);
+            var (org, scopeDenied) = await AuthorizeRead(slug, http, authenticator, orgs, entitlements, ct);
             if (scopeDenied is not null)
                 return scopeDenied;
 
@@ -42,9 +45,10 @@ public static class OutletCloudEndpoints
             PersonalAccessTokenAuthenticator authenticator,
             IOrganizationRepository orgs,
             IPublishedItemRepository items,
+            SubscriptionEntitlementResolver entitlements,
             CancellationToken ct) =>
         {
-            var (org, scopeDenied) = await AuthorizeRead(slug, http, authenticator, orgs, ct);
+            var (org, scopeDenied) = await AuthorizeRead(slug, http, authenticator, orgs, entitlements, ct);
             if (scopeDenied is not null)
                 return scopeDenied;
 
@@ -64,6 +68,7 @@ public static class OutletCloudEndpoints
         HttpRequest http,
         PersonalAccessTokenAuthenticator authenticator,
         IOrganizationRepository orgs,
+        SubscriptionEntitlementResolver entitlements,
         CancellationToken ct)
     {
         var token = await authenticator.AuthenticateAsync(http.Headers.Authorization, ct);
@@ -78,6 +83,17 @@ public static class OutletCloudEndpoints
             return (null, Results.NotFound());
 
         var org = await orgs.GetBySlugAsync(slugResult.Value!, ct);
-        return org is null ? (null, Results.NotFound()) : (org, null);
+        if (org is null)
+            return (null, Results.NotFound());
+
+        // The registry is hosted under the owner's plan. Trial/Active/Suspended may still be
+        // read (consult/export); only an expired (purged) account loses read access.
+        var hostEntitlements = await entitlements.ResolveAsync(AccountId.From(org.OwnerId.Value), ct);
+        if (!hostEntitlements.CanReadPrivateRegistry)
+            return (null, Results.Json(
+                new { error = "This private registry is unavailable: the hosting account's Outlet Cloud subscription has expired." },
+                statusCode: StatusCodes.Status402PaymentRequired));
+
+        return (org, null);
     }
 }

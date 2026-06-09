@@ -34,6 +34,7 @@ public static class CloudWebServiceCollectionExtensions
         services.AddScoped<SubscriptionEntitlementResolver>();
         services.AddScoped<StartTrialUseCase>();
         services.AddScoped<ConvertSubscriptionUseCase>();
+        services.AddScoped<CancelSubscriptionUseCase>();
         services.AddScoped<GetEntitlementsUseCase>();
 
         services.AddScoped<OrganizationTokenIssuer>();

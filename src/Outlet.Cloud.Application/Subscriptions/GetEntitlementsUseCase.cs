@@ -1,12 +1,11 @@
 using Outlet.Cloud.Application.Ports;
-using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Subscriptions;
 using Outlet.Kernel.Shared;
 
 namespace Outlet.Cloud.Application.Subscriptions;
 
-/// <summary>Query: the current entitlement snapshot for an organization.</summary>
-public sealed record GetEntitlementsQuery(Guid OrganizationId);
+/// <summary>Query: the current entitlement snapshot for an account.</summary>
+public sealed record GetEntitlementsQuery(Guid AccountId);
 
 /// <summary>
 /// What `outlet whoami` surfaces and what the API can echo back: plan, status, trial days left,
@@ -32,13 +31,13 @@ public sealed class GetEntitlementsUseCase(
 {
     public async Task<Result<EntitlementsView>> HandleAsync(GetEntitlementsQuery query, CancellationToken cancellationToken = default)
     {
-        var orgResult = Guard.TryBuild(() => OrganizationId.From(query.OrganizationId), "Organization id is invalid.");
-        if (orgResult.IsFailure)
-            return Result<EntitlementsView>.Failure(orgResult.Error!);
+        var accountResult = Guard.TryBuild(() => AccountId.From(query.AccountId), "Account id is invalid.");
+        if (accountResult.IsFailure)
+            return Result<EntitlementsView>.Failure(accountResult.Error!);
 
         // Resolve first so any elapsed trial is transitioned + persisted before we read it back.
-        var entitlements = await resolver.ResolveAsync(orgResult.Value!, cancellationToken);
-        var subscription = await subscriptions.GetByOrganizationAsync(orgResult.Value!, cancellationToken);
+        var entitlements = await resolver.ResolveAsync(accountResult.Value!, cancellationToken);
+        var subscription = await subscriptions.GetByAccountAsync(accountResult.Value!, cancellationToken);
 
         if (subscription is null)
             return Result<EntitlementsView>.Success(new EntitlementsView(

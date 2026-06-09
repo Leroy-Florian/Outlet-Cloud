@@ -1,4 +1,3 @@
-using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Subscriptions;
 
 namespace Outlet.Cloud.Domain.UnitTests.Subscriptions;
@@ -6,11 +5,11 @@ namespace Outlet.Cloud.Domain.UnitTests.Subscriptions;
 public sealed class SubscriptionTests
 {
     private static readonly SubscriptionId AnyId = SubscriptionId.From(Guid.NewGuid());
-    private static readonly OrganizationId AnyOrg = OrganizationId.From(Guid.NewGuid());
+    private static readonly AccountId AnyAccount = AccountId.From(Guid.NewGuid());
     private static readonly DateOnly Day0 = new(2026, 6, 1);
 
     private static Subscription NewTrial(int days = 14) =>
-        Subscription.CreateTrial(AnyId, AnyOrg, TrialPeriod.Of(Day0, days)).Value!;
+        Subscription.CreateTrial(AnyId, AnyAccount, TrialPeriod.Of(Day0, days)).Value!;
 
     [Fact]
     public void Should_StartInTrialing_When_TrialCreated()
@@ -77,6 +76,30 @@ public sealed class SubscriptionTests
 
         entitlements.CanPublishPrivateItems.Should().BeFalse();
         entitlements.CanReadPrivateRegistry.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Should_Suspend_When_ActivePlanCancelled()
+    {
+        var subscription = NewTrial();
+        subscription.Convert(PlanTier.Pro);
+
+        var result = subscription.Cancel();
+
+        result.IsSuccess.Should().BeTrue();
+        subscription.Status.Should().Be(SubscriptionStatus.Suspended);
+        subscription.ResolveEntitlements().CanPublishPrivateItems.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Should_Fail_When_CancellingATrial()
+    {
+        var subscription = NewTrial();
+
+        var result = subscription.Cancel();
+
+        result.IsFailure.Should().BeTrue();
+        subscription.Status.Should().Be(SubscriptionStatus.Trialing);
     }
 
     [Fact]

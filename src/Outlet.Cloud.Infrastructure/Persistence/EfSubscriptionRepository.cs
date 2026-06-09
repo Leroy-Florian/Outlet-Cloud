@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using Outlet.Cloud.Application.Ports;
-using Outlet.Cloud.Domain.Organizations;
 using Outlet.Cloud.Domain.Subscriptions;
 
 namespace Outlet.Cloud.Infrastructure.Persistence;
@@ -8,10 +7,10 @@ namespace Outlet.Cloud.Infrastructure.Persistence;
 /// <summary>SECONDARY ADAPTER — EF Core implementation of <see cref="ISubscriptionRepository"/>.</summary>
 public sealed class EfSubscriptionRepository(CloudDbContext db) : ISubscriptionRepository
 {
-    public async Task<Subscription?> GetByOrganizationAsync(OrganizationId organizationId, CancellationToken cancellationToken = default)
+    public async Task<Subscription?> GetByAccountAsync(AccountId accountId, CancellationToken cancellationToken = default)
     {
         var record = await db.Subscriptions
-            .FirstOrDefaultAsync(s => s.OrganizationId == organizationId.Value, cancellationToken);
+            .FirstOrDefaultAsync(s => s.AccountId == accountId.Value, cancellationToken);
 
         return record is null ? null : ToDomain(record);
     }
@@ -50,7 +49,7 @@ public sealed class EfSubscriptionRepository(CloudDbContext db) : ISubscriptionR
 
         return Subscription.Restore(
             SubscriptionId.From(record.Id),
-            OrganizationId.From(record.OrganizationId),
+            AccountId.From(record.AccountId),
             Enum.Parse<PlanTier>(record.Plan),
             Enum.Parse<SubscriptionStatus>(record.Status),
             trial);
@@ -60,7 +59,7 @@ public sealed class EfSubscriptionRepository(CloudDbContext db) : ISubscriptionR
         new()
         {
             Id = subscription.Id.Value,
-            OrganizationId = subscription.OrganizationId.Value,
+            AccountId = subscription.AccountId.Value,
             Plan = subscription.Plan.ToString(),
             Status = subscription.Status.ToString(),
             TrialStartedOn = subscription.Trial?.StartedOn,

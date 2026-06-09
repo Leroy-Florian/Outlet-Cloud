@@ -7,22 +7,24 @@ namespace Outlet.Cloud.Web.IntegrationTests;
 public sealed class PaywallAndResetTests
 {
     [Fact]
-    public async Task Should_RequirePro_ForManagementUi()
+    public async Task Should_GateManagementUi_OnSubscriptionStatus()
     {
         using var factory = new OutletCloudAppFactory().Migrated();
         var client = factory.CreateClient();
 
-        (await client.PostAsJsonAsync("/auth/register", new { email = "free@acme.test", password = "Str0ng!pwd", displayName = "Free" }))
+        (await client.PostAsJsonAsync("/auth/register", new { email = "dev@acme.test", password = "Str0ng!pwd", displayName = "Dev" }))
             .StatusCode.Should().Be(HttpStatusCode.Created);
 
-        // Free account: the management UI is gated.
+        // Frictionless trial: full Pro access immediately, no card.
         (await client.PostAsJsonAsync("/organizations", new { slug = "acme", name = "Acme" }))
-            .StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
+            .StatusCode.Should().Be(HttpStatusCode.Created);
 
-        // Subscribe (mock checkout) -> Pro -> access granted.
+        // Convert (mock checkout) keeps access; cancel suspends -> management goes read-only (402).
         (await client.PostAsync("/billing/subscribe", null)).StatusCode.Should().Be(HttpStatusCode.OK);
-        (await client.PostAsJsonAsync("/organizations", new { slug = "acme", name = "Acme" }))
-            .StatusCode.Should().Be(HttpStatusCode.Created);
+        (await client.PostAsync("/billing/cancel", null)).StatusCode.Should().Be(HttpStatusCode.OK);
+
+        (await client.PostAsJsonAsync("/organizations", new { slug = "beta", name = "Beta" }))
+            .StatusCode.Should().Be(HttpStatusCode.PaymentRequired);
     }
 
     [Fact]

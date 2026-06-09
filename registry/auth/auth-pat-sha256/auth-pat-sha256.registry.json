@@ -1,0 +1,16 @@
+{
+  "$schema": "../../registry-item.schema.json",
+  "name": "auth-pat-sha256",
+  "type": "outlet:adapter",
+  "concern": "auth",
+  "description": "SHA-256 adapter for IPersonalAccessTokenAuthenticator: hashes the bearer secret and validates it against a pluggable IPersonalAccessTokenStore. No external dependency.",
+  "targetFrameworks": ["net8.0", "net9.0", "net10.0"],
+  "registryDependencies": ["auth-pat-abstractions"],
+  "nugetDependencies": [],
+  "files": [
+    { "path": "Sha256PersonalAccessTokenAuthenticator.cs", "target": "adapter" },
+    { "path": "TokenHashing.cs", "target": "adapter" },
+    { "path": "PersonalAccessTokenAuthenticationOptions.cs", "target": "adapter" },
+    { "path": "PersonalAccessTokenAuthenticationServiceCollectionExtensions.cs", "target": "adapter" }
+  ]
+}

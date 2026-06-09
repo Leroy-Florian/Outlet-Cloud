@@ -1,0 +1,16 @@
+<Project>
+  <PropertyGroup>
+    <!-- Common settings for all projects -->
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>14.0</LangVersion>
+
+    <!-- Run IDExxxx analyzers (collection expressions, etc.) at build time, not only in the IDE. -->
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+
+    <!-- Force bin/obj to stay in each project's folder -->
+    <BaseOutputPath>$(MSBuildProjectDirectory)\bin\</BaseOutputPath>
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)\obj\</BaseIntermediateOutputPath>
+  </PropertyGroup>
+</Project>

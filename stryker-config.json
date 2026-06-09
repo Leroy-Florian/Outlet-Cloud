@@ -1,0 +1,50 @@
+{
+  "$schema": "https://raw.githubusercontent.com/stryker-mutator/stryker-net/master/src/Stryker.Core/Stryker.Core/stryker-schema.json",
+  "stryker-config": {
+    "project-info": {
+      "name": "Outlet",
+      "module": "Outlet"
+    },
+    "reporters": [
+      "json",
+      "html",
+      "progress",
+      "cleartext"
+    ],
+    "verbosity": "info",
+    "mutate": [
+      "**/*.cs",
+      "!**/obj/**",
+      "!**/bin/**",
+      "!**/*Tests*/**",
+      "!**/*Test*/**",
+      "!**/AssemblyInfo.cs",
+      "!**/AssemblyReference.cs",
+      "!**/GlobalUsings.cs",
+      "!**/Outlet.Cli/**",
+      "!**/Outlet.Core.Infrastructure/**",
+      "!**/Kernel.Shared/**/Mediator/**",
+      "!**/Kernel.Shared/**/UtcDateTimeProvider.cs"
+    ],
+    "ignore-mutations": [
+      "string",
+      "linq"
+    ],
+    "ignore-methods": [
+      "ToString",
+      "GetHashCode",
+      "Equals"
+    ],
+    "solution": "Outlet.slnx",
+    "since": {
+      "enabled": false
+    },
+    "concurrency": 4,
+    "thresholds": {
+      "high": 80,
+      "low": 60,
+      "break": 50
+    },
+    "mutation-level": "Standard"
+  }
+}

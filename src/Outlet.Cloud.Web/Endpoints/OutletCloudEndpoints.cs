@@ -1,0 +1,83 @@
+using Outlet.Cloud.Application.Ports;
+using Outlet.Cloud.Domain.Organizations;
+using Outlet.Cloud.Domain.Registry;
+using Outlet.Cloud.Web.Authentication;
+using Outlet.Kernel.Shared;
+
+namespace Outlet.Cloud.Web.Endpoints;
+
+/// <summary>
+/// The machine-facing registry: authenticated by a personal access token (bearer),
+/// authorized by the token's <c>org:{slug}:registry:read</c> scope. Serves the index
+/// and item files in the exact layout the CLI's HttpRegistrySource consumes
+/// (<c>{base}/registry.json</c> + <c>{base}/{item}/{file}</c>). Human/management
+/// endpoints live in <see cref="OrganizationManagementEndpoints"/> (cookie session).
+/// </summary>
+public static class OutletCloudEndpoints
+{
+    public static void MapOutletCloud(this WebApplication app)
+    {
+        app.MapGet("/organizations/{slug}/registry.json", async (
+            string slug,
+            HttpRequest http,
+            PersonalAccessTokenAuthenticator authenticator,
+            IOrganizationRepository orgs,
+            IPublishedItemRepository items,
+            CancellationToken ct) =>
+        {
+            var (org, scopeDenied) = await AuthorizeRead(slug, http, authenticator, orgs, ct);
+            if (scopeDenied is not null)
+                return scopeDenied;
+
+            var published = await items.ListForOrganizationAsync(org!.Id, ct);
+            var json = "{\"items\":[" + string.Join(",", published.Select(i => i.ManifestJson)) + "]}";
+            return Results.Content(json, "application/json");
+        });
+
+        app.MapGet("/organizations/{slug}/{itemName}/{**filePath}", async (
+            string slug,
+            string itemName,
+            string filePath,
+            HttpRequest http,
+            PersonalAccessTokenAuthenticator authenticator,
+            IOrganizationRepository orgs,
+            IPublishedItemRepository items,
+            CancellationToken ct) =>
+        {
+            var (org, scopeDenied) = await AuthorizeRead(slug, http, authenticator, orgs, ct);
+            if (scopeDenied is not null)
+                return scopeDenied;
+
+            var nameResult = Guard.TryBuild(() => RegistryItemName.From(itemName), "invalid item name");
+            if (nameResult.IsFailure)
+                return Results.NotFound();
+
+            var item = await items.GetAsync(org!.Id, nameResult.Value!, ct);
+            var file = item?.Files.FirstOrDefault(f => f.Path == filePath);
+            return file is null ? Results.NotFound() : Results.Text(file.Content);
+        });
+    }
+
+    /// <summary>Validates the bearer token + read scope and resolves the org; returns a denial result otherwise.</summary>
+    private static async Task<(Organization? Org, IResult? Denied)> AuthorizeRead(
+        string slug,
+        HttpRequest http,
+        PersonalAccessTokenAuthenticator authenticator,
+        IOrganizationRepository orgs,
+        CancellationToken ct)
+    {
+        var token = await authenticator.AuthenticateAsync(http.Headers.Authorization, ct);
+        if (token is null)
+            return (null, Results.Unauthorized());
+
+        if (!token.Scopes.Contains($"org:{slug}:registry:read"))
+            return (null, Results.StatusCode(StatusCodes.Status403Forbidden));
+
+        var slugResult = Guard.TryBuild(() => OrganizationSlug.From(slug), "invalid slug");
+        if (slugResult.IsFailure)
+            return (null, Results.NotFound());
+
+        var org = await orgs.GetBySlugAsync(slugResult.Value!, ct);
+        return org is null ? (null, Results.NotFound()) : (org, null);
+    }
+}

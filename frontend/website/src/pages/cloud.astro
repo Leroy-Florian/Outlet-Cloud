@@ -1,0 +1,87 @@
+---
+import Base from '../layouts/Base.astro'
+import { url } from '../lib/url'
+
+const pillars = [
+  {
+    title: 'Hosted private registries',
+    body: 'Publish your internal adapters and conventions to a registry only your team can pull from — no servers to run.',
+  },
+  {
+    title: 'Team management',
+    body: 'Invite teammates, scope access per registry, and keep one source of truth for shared infrastructure code.',
+  },
+  {
+    title: 'Drift & update insight',
+    body: 'See which projects installed which items, diff them against newer registry versions, and roll updates out deliberately.',
+  },
+]
+---
+
+<Base title="Outlet Cloud — hosted registries for teams" description="Outlet Cloud adds hosted private registries, team management and drift insight on top of the open-source Outlet CLI.">
+  <section class="mx-auto max-w-6xl px-6 pb-12 pt-20 text-center">
+    <p class="mx-auto mb-6 w-fit rounded-full border border-border bg-muted px-3 py-1 text-sm text-muted-foreground">
+      Coming soon — early access open
+    </p>
+    <h1 class="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-5xl">
+      The platform layer on top of the registry you already own
+    </h1>
+    <p class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+      Outlet stays copy-paste and open source. Outlet Cloud hosts your private registries,
+      manages your team and keeps your projects honest about what they installed.
+    </p>
+  </section>
+
+  <section class="mx-auto grid max-w-6xl gap-4 px-6 pb-16 md:grid-cols-3">
+    {pillars.map((p) => (
+      <div class="rounded-lg border border-border p-6">
+        <h2 class="font-semibold">{p.title}</h2>
+        <p class="mt-2 text-sm text-muted-foreground">{p.body}</p>
+      </div>
+    ))}
+  </section>
+
+  <section id="early-access" class="mx-auto max-w-3xl scroll-mt-24 px-6 pb-20">
+    <div class="rounded-lg border border-border bg-zinc-950 p-10 text-center">
+      <h2 class="text-2xl font-bold tracking-tight text-white">Get early access</h2>
+      <p class="mx-auto mt-3 max-w-md text-zinc-400">
+        Leave your email and be the first to try Outlet Cloud — and to lock in launch pricing.
+      </p>
+      <form class="mx-auto mt-8 flex max-w-md flex-col gap-3 sm:flex-row" data-waitlist>
+        <input
+          type="email"
+          name="email"
+          required
+          placeholder="you@company.com"
+          class="flex-1 rounded-md border border-zinc-700 bg-zinc-900 px-4 py-2.5 text-sm text-white placeholder-zinc-500 outline-none transition focus:border-zinc-400"
+        />
+        <button type="submit" class="rounded-md bg-white px-5 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90">
+          Join the list
+        </button>
+      </form>
+      <p class="mt-4 hidden text-sm text-green-400" data-waitlist-ok>
+        Thanks! Your email client just opened — send the message and you're on the list.
+      </p>
+      <p class="mt-4 text-xs text-zinc-500">No spam. One email at launch, that's it.</p>
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-6xl px-6 pb-20 text-center">
+    <p class="text-muted-foreground">
+      Not ready for the cloud? The open-source CLI does everything locally.
+      <a href={url('/docs/getting-started')} class="font-medium text-foreground underline underline-offset-4">Start with the docs →</a>
+    </p>
+  </section>
+
+  <script>
+    // Placeholder capture until a real waitlist backend exists: hands off to the
+    // visitor's email client with a pre-filled message.
+    const form = document.querySelector<HTMLFormElement>('[data-waitlist]')
+    form?.addEventListener('submit', (e) => {
+      e.preventDefault()
+      const email = new FormData(form).get('email')
+      location.href = `mailto:mr.leroyflorian@gmail.com?subject=${encodeURIComponent('Outlet Cloud — early access')}&body=${encodeURIComponent(`Please add me to the Outlet Cloud early-access list: ${email}`)}`
+      document.querySelector('[data-waitlist-ok]')?.classList.remove('hidden')
+    })
+  </script>
+</Base>

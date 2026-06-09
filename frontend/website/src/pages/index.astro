@@ -1,0 +1,156 @@
+---
+import { Code } from 'astro:components'
+import Base from '../layouts/Base.astro'
+import { url } from '../lib/url'
+
+const cliExample = `dotnet tool install -g outlet
+
+outlet init
+outlet add email-smtp
+outlet list`
+
+const diExample = `// Same port, swappable provider — switching is a one-line change.
+services.AddSmtpEmail(options => options.Host = "smtp.example.com");
+// services.AddSendGridEmail(options => options.ApiKey = "...");
+
+public sealed class WelcomeNotifier(IEmailSender email)
+{
+    public Task SendAsync(User user) =>
+        email.SendAsync(new EmailMessage(user.Address, "Welcome!", "..."));
+}`
+
+const features = [
+  {
+    title: 'You own the code',
+    body: 'No runtime dependency on Outlet. Uninstalling it breaks nothing — the code lives in your repo and is yours to edit.',
+  },
+  {
+    title: 'Swappable adapters',
+    body: 'Each concern exposes a minimal generic port with interchangeable adapters. Switch provider behind the same port in one line of DI.',
+  },
+  {
+    title: 'Hexagonal & tested',
+    body: 'Contracts have zero external dependencies. Every registry item compiles and is tested — the manifest never lies.',
+  },
+  {
+    title: 'Environment-aware install',
+    body: 'The CLI reads evaluated MSBuild values, resolves dependencies, rewrites namespaces with Roslyn and pins everything in outlet.json.',
+  },
+  {
+    title: 'Thin adapters by design',
+    body: 'Resilience is composed on top with Polly, never baked in. Provider-specific features live in a second interface, never in the shared port.',
+  },
+  {
+    title: 'CPM-native',
+    body: 'NuGet packages are added through Central Package Management, keeping versions consistent across your whole solution.',
+  },
+]
+
+const steps = [
+  {
+    title: 'Initialize',
+    body: 'Run outlet init in your solution. Outlet detects your environment and writes an outlet.json lockfile.',
+  },
+  {
+    title: 'Add a concern',
+    body: 'Run outlet add email-smtp. Dependencies resolved, namespaces rewritten to match your project, packages added via CPM.',
+  },
+  {
+    title: 'Own & swap',
+    body: 'The code is yours: edit it freely. Want SendGrid instead of SMTP? Change one AddXxx() line — the port stays identical.',
+  },
+]
+---
+
+<Base title="Outlet — Copy-paste backend infrastructure for .NET">
+  <!-- Hero -->
+  <section class="mx-auto max-w-6xl px-6 pb-16 pt-20 text-center">
+    <a
+      href={url('/cloud')}
+      class="mx-auto mb-6 inline-flex items-center gap-2 rounded-full border border-border bg-muted px-3 py-1 text-sm text-muted-foreground transition-colors hover:text-foreground"
+    >
+      <span class="font-medium text-foreground">New</span> Outlet Cloud early access is open →
+    </a>
+    <h1 class="mx-auto max-w-3xl text-4xl font-bold tracking-tight sm:text-6xl">
+      The foundation for your .NET backend
+    </h1>
+    <p class="mx-auto mt-6 max-w-2xl text-lg text-muted-foreground">
+      A copy-paste registry of backend infrastructure — email, cache, resilience, storage.
+      One generic port, swappable adapters. Open source. Open code. Yours to own.
+    </p>
+    <div class="mt-8 flex flex-wrap items-center justify-center gap-3">
+      <a href={url('/docs/getting-started')} class="rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90">
+        Get started
+      </a>
+      <a href={url('/registry')} class="rounded-md border border-border px-5 py-2.5 text-sm font-medium transition-colors hover:bg-muted">
+        Browse the registry
+      </a>
+    </div>
+  </section>
+
+  <!-- Terminal demo -->
+  <section class="mx-auto grid max-w-6xl gap-4 px-6 pb-20 lg:grid-cols-2">
+    <div class="overflow-hidden rounded-lg border border-border bg-zinc-950">
+      <div class="flex items-center gap-2 border-b border-zinc-800 px-4 py-2.5">
+        <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+        <span class="h-2.5 w-2.5 rounded-full bg-zinc-700"></span>
+        <span class="ml-2 font-mono text-xs text-zinc-500">terminal</span>
+      </div>
+      <Code code={cliExample} lang="shellsession" theme="github-dark-default" class="!m-0 !rounded-none !bg-transparent p-5 text-sm" />
+    </div>
+    <div class="overflow-hidden rounded-lg border border-border bg-zinc-950">
+      <div class="flex items-center border-b border-zinc-800 px-4 py-2.5">
+        <span class="font-mono text-xs text-zinc-500">Program.cs</span>
+      </div>
+      <Code code={diExample} lang="csharp" theme="github-dark-default" class="!m-0 !rounded-none !bg-transparent p-5 text-sm" />
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="border-t border-border bg-muted/40">
+    <div class="mx-auto max-w-6xl px-6 py-16">
+      <h2 class="text-center text-3xl font-bold tracking-tight">How it works</h2>
+      <p class="mx-auto mt-3 max-w-xl text-center text-muted-foreground">
+        Three commands between an empty project and working, provider-agnostic infrastructure.
+      </p>
+      <div class="mt-10 grid gap-4 md:grid-cols-3">
+        {steps.map((s, i) => (
+          <div class="rounded-lg border border-border bg-background p-6">
+            <span class="grid h-7 w-7 place-items-center rounded-full border border-border font-mono text-sm font-semibold">{i + 1}</span>
+            <h3 class="mt-4 font-semibold">{s.title}</h3>
+            <p class="mt-2 text-sm text-muted-foreground">{s.body}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section class="mx-auto max-w-6xl px-6 py-16">
+    <h2 class="text-center text-3xl font-bold tracking-tight">Built on locked-in principles</h2>
+    <div class="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {features.map((f) => (
+        <div class="rounded-lg border border-border p-6 transition-colors hover:bg-muted/50">
+          <h3 class="font-semibold">{f.title}</h3>
+          <p class="mt-2 text-sm text-muted-foreground">{f.body}</p>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <!-- Cloud teaser -->
+  <section class="mx-auto max-w-6xl px-6 pb-20">
+    <div class="rounded-lg border border-border bg-zinc-950 p-10 text-center sm:p-14">
+      <p class="mx-auto w-fit rounded-full border border-zinc-800 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-400">Coming soon</p>
+      <h2 class="mx-auto mt-4 max-w-xl text-3xl font-bold tracking-tight text-white">Outlet Cloud — your team's private registry, hosted</h2>
+      <p class="mx-auto mt-4 max-w-xl text-zinc-400">
+        Private registries, team management and a hosted distribution pipeline on top of the
+        open-source CLI. The registry stays copy-paste; the platform does the heavy lifting.
+      </p>
+      <a href={url('/cloud')} class="mt-8 inline-block rounded-md bg-white px-5 py-2.5 text-sm font-medium text-zinc-950 transition-opacity hover:opacity-90">
+        Join the early access
+      </a>
+    </div>
+  </section>
+</Base>

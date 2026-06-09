@@ -18,12 +18,45 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore Outlet.Cloud.slnx
+        run: dotnet restore Outlet.Platform.slnx
 
       - name: Build (Release, 0 warning)
-        run: dotnet build Outlet.Cloud.slnx -c Release --no-restore
+        run: dotnet build Outlet.Platform.slnx -c Release --no-restore
 
       # Lane PR : hermétique, rapide, sans secret. Les tests "Live" (providers
       # réels) appartiennent à une lane planifiée non bloquante, hors de ce repo.
       - name: Test
-        run: dotnet test Outlet.Cloud.slnx -c Release --no-build --filter "Category!=Live"
+        run: dotnet test Outlet.Platform.slnx -c Release --no-build --filter "Category!=Live"
+
+  frontend-website:
+    name: Frontend — site (Astro)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/website
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/website/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  frontend-crm:
+    name: Frontend — CRM dashboard
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend/crm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: frontend/crm/package-lock.json
+      - run: npm ci
+      - run: npm run build
+      - run: npm test --if-present

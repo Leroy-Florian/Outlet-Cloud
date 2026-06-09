@@ -1,0 +1,70 @@
+@import 'tailwindcss';
+
+@theme {
+  /* shadcn/ui-style neutral palette (zinc), light theme. */
+  --color-background: #ffffff;
+  --color-foreground: #09090b;
+  --color-muted: #f4f4f5;
+  --color-muted-foreground: #71717a;
+  --color-border: #e4e4e7;
+  --color-primary: #18181b;
+  --color-primary-foreground: #fafafa;
+  --color-accent: #f4f4f5;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', 'Cascadia Code', monospace;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-background text-foreground antialiased;
+}
+
+/* Rendered markdown (docs pages). */
+.prose-docs {
+  @apply text-zinc-700 leading-7;
+}
+.prose-docs h1 {
+  @apply text-3xl font-bold text-foreground mt-2 mb-6 tracking-tight;
+}
+.prose-docs h2 {
+  @apply text-xl font-semibold text-foreground mt-10 mb-4 pt-6 border-t border-border;
+}
+.prose-docs h3 {
+  @apply text-lg font-semibold text-foreground mt-8 mb-3;
+}
+.prose-docs p {
+  @apply my-4;
+}
+.prose-docs a {
+  @apply font-medium text-foreground underline underline-offset-4 decoration-zinc-300 hover:decoration-zinc-500;
+}
+.prose-docs ul {
+  @apply list-disc pl-6 my-4 space-y-2;
+}
+.prose-docs ol {
+  @apply list-decimal pl-6 my-4 space-y-2;
+}
+.prose-docs code {
+  @apply font-mono text-[0.85em] text-foreground bg-muted rounded px-1.5 py-0.5;
+}
+.prose-docs pre {
+  @apply my-5 rounded-lg border border-border bg-zinc-950 p-4 overflow-x-auto text-sm;
+}
+.prose-docs pre code {
+  @apply bg-transparent p-0 text-inherit;
+}
+.prose-docs blockquote {
+  @apply border-l-2 border-zinc-300 bg-muted/60 rounded-r-lg pl-4 pr-4 py-1 my-5 text-muted-foreground;
+}
+.prose-docs table {
+  @apply w-full my-5 text-sm;
+}
+.prose-docs th {
+  @apply text-left text-foreground border-b border-border px-3 py-2;
+}
+.prose-docs td {
+  @apply border-b border-border px-3 py-2;
+}

@@ -1,0 +1,166 @@
+---
+import Base from '../layouts/Base.astro'
+import registry from '../data/registry.json'
+
+const items = registry.items
+const concerns = [...new Set(items.map((i) => i.concern))]
+const tfms = [...new Set(items.flatMap((i) => i.targetFrameworks))].sort(
+  (a, b) => parseFloat(a.replace('net', '')) - parseFloat(b.replace('net', '')),
+)
+
+const tfmLabel = (tfm: string) => `.NET ${tfm.replace('net', '').replace('.0', '')}`
+---
+
+<Base title="Registry — Outlet" description="Browse every Outlet concern and adapter, filtered by .NET version, with one-click install commands.">
+  <section class="mx-auto max-w-4xl px-6 py-14">
+    <h1 class="text-3xl font-bold tracking-tight">Registry</h1>
+    <p class="mt-3 max-w-2xl text-muted-foreground">
+      Every contract and adapter in the public registry. Pick your .NET version — the list
+      resolves to the items available for it, install command included.
+    </p>
+
+    <!-- .NET version picker -->
+    <div class="mt-8 flex flex-wrap items-center gap-3">
+      <span class="text-sm font-medium">.NET version</span>
+      <div class="inline-flex rounded-lg border border-border bg-muted p-1" role="tablist" aria-label=".NET version">
+        <button
+          type="button"
+          data-tfm="all"
+          class="tfm-btn rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors"
+        >
+          All
+        </button>
+        {tfms.map((tfm) => (
+          <button
+            type="button"
+            data-tfm={tfm}
+            class="tfm-btn rounded-md px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors"
+          >
+            {tfmLabel(tfm)}
+          </button>
+        ))}
+      </div>
+      <p class="text-sm text-muted-foreground" data-count></p>
+    </div>
+
+    <!-- Items grouped by concern -->
+    {concerns.map((concern) => (
+      <section class="mt-10" data-concern={concern}>
+        <h2 class="font-mono text-sm font-semibold uppercase tracking-wider text-muted-foreground">{concern}</h2>
+        <div class="mt-4 space-y-4">
+          {items
+            .filter((i) => i.concern === concern)
+            .map((item) => (
+              <article
+                class="registry-item rounded-lg border border-border p-5"
+                data-tfms={item.targetFrameworks.join(' ')}
+              >
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div class="min-w-0">
+                    <div class="flex flex-wrap items-center gap-2">
+                      <h3 class="font-mono text-sm font-semibold">{item.name}</h3>
+                      <span
+                        class={`rounded-full border px-2 py-0.5 text-xs font-medium ${
+                          item.isContract
+                            ? 'border-border bg-muted text-muted-foreground'
+                            : 'border-zinc-900 bg-zinc-900 text-white'
+                        }`}
+                      >
+                        {item.isContract ? 'contract' : 'adapter'}
+                      </span>
+                      {item.targetFrameworks.map((tfm) => (
+                        <span class="rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground">{tfmLabel(tfm)}</span>
+                      ))}
+                    </div>
+                    <p class="mt-2 text-sm text-muted-foreground">{item.description}</p>
+                    <dl class="mt-3 flex flex-wrap gap-x-6 gap-y-1 text-xs text-muted-foreground">
+                      {item.registryDependencies.length > 0 && (
+                        <div class="flex gap-1.5">
+                          <dt class="font-medium text-foreground">Pulls in:</dt>
+                          <dd class="font-mono">{item.registryDependencies.join(', ')}</dd>
+                        </div>
+                      )}
+                      {item.nugetDependencies.length > 0 && (
+                        <div class="flex gap-1.5">
+                          <dt class="font-medium text-foreground">NuGet:</dt>
+                          <dd class="font-mono">
+                            {item.nugetDependencies.map((d) => `${d.id} ${d.version}`).join(', ')}
+                          </dd>
+                        </div>
+                      )}
+                      <div class="flex gap-1.5">
+                        <dt class="font-medium text-foreground">Files:</dt>
+                        <dd>{item.files.length} source file{item.files.length > 1 ? 's' : ''}</dd>
+                      </div>
+                    </dl>
+                  </div>
+                  <button
+                    type="button"
+                    class="copy-btn flex shrink-0 items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 font-mono text-xs transition-colors hover:bg-accent"
+                    data-command={`outlet add ${item.name}`}
+                    title="Copy install command"
+                  >
+                    <span class="select-none text-muted-foreground">$</span>
+                    <span>outlet add {item.name}</span>
+                    <svg class="copy-icon h-3.5 w-3.5 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                    </svg>
+                    <svg class="check-icon hidden h-3.5 w-3.5 text-green-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                      <path d="M20 6 9 17l-5-5" />
+                    </svg>
+                  </button>
+                </div>
+              </article>
+            ))}
+        </div>
+      </section>
+    ))}
+
+    <p class="mt-12 rounded-lg border border-border bg-muted/50 p-4 text-sm text-muted-foreground">
+      More concerns (cache, resilience, storage…) are on the roadmap — email is the first
+      one, proven end to end. Want your team's internal adapters in a private registry?
+      That's <a href="/cloud" class="font-medium text-foreground underline underline-offset-4">Outlet Cloud</a>.
+    </p>
+  </section>
+
+  <script>
+    const buttons = [...document.querySelectorAll<HTMLButtonElement>('.tfm-btn')]
+    const items = [...document.querySelectorAll<HTMLElement>('.registry-item')]
+    const count = document.querySelector<HTMLElement>('[data-count]')
+    const active = ['bg-background', 'text-foreground', 'shadow-sm']
+
+    function select(tfm: string) {
+      for (const b of buttons) {
+        b.classList.toggle('text-muted-foreground', b.dataset.tfm !== tfm)
+        for (const c of active) b.classList.toggle(c, b.dataset.tfm === tfm)
+      }
+      let visible = 0
+      for (const item of items) {
+        const ok = tfm === 'all' || item.dataset.tfms!.split(' ').includes(tfm)
+        item.classList.toggle('hidden', !ok)
+        if (ok) visible++
+      }
+      for (const section of document.querySelectorAll<HTMLElement>('[data-concern]')) {
+        const any = [...section.querySelectorAll('.registry-item')].some((i) => !i.classList.contains('hidden'))
+        section.classList.toggle('hidden', !any)
+      }
+      if (count) count.textContent = `${visible} item${visible === 1 ? '' : 's'} available`
+      localStorage.setItem('outlet.tfm', tfm)
+    }
+
+    for (const b of buttons) b.addEventListener('click', () => select(b.dataset.tfm!))
+    select(localStorage.getItem('outlet.tfm') ?? 'all')
+
+    for (const btn of document.querySelectorAll<HTMLButtonElement>('.copy-btn')) {
+      btn.addEventListener('click', async () => {
+        await navigator.clipboard.writeText(btn.dataset.command!)
+        btn.querySelector('.copy-icon')!.classList.add('hidden')
+        btn.querySelector('.check-icon')!.classList.remove('hidden')
+        setTimeout(() => {
+          btn.querySelector('.copy-icon')!.classList.remove('hidden')
+          btn.querySelector('.check-icon')!.classList.add('hidden')
+        }, 1500)
+      })
+    }
+  </script>
+</Base>

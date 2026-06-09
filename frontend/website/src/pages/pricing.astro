@@ -1,0 +1,99 @@
+---
+import Base from '../layouts/Base.astro'
+import { url } from '../lib/url'
+
+const tiers = [
+  {
+    name: 'Open Source',
+    price: 'Free',
+    period: 'forever',
+    tagline: 'The full registry and CLI. No account, no lock-in.',
+    cta: { label: 'Get started', href: url('/docs/getting-started'), primary: false },
+    features: [
+      'outlet CLI (init, add, list, remove, diff, update)',
+      'Public registry: all concerns and adapters',
+      'Namespace rewriting & environment detection',
+      'Self-host your own registry over HTTP',
+      'Community support on GitHub',
+    ],
+  },
+  {
+    name: 'Outlet Cloud',
+    price: 'Early access',
+    period: 'pricing announced at launch',
+    tagline: 'Hosted private registries and team workflows for companies.',
+    cta: { label: 'Join early access', href: url('/cloud#early-access'), primary: true },
+    highlight: true,
+    features: [
+      'Everything in Open Source',
+      'Hosted private registries for your internal adapters',
+      'Team & access management',
+      'Drift detection: diff your repo against registry updates',
+      'Audit log of installed items across projects',
+      'Priority support',
+    ],
+  },
+]
+---
+
+<Base title="Pricing — Outlet" description="Outlet is free and open source. Outlet Cloud adds hosted private registries and team workflows.">
+  <section class="mx-auto max-w-6xl px-6 py-16">
+    <h1 class="text-center text-4xl font-bold tracking-tight">Free where it counts. Paid where it scales.</h1>
+    <p class="mx-auto mt-4 max-w-2xl text-center text-muted-foreground">
+      The registry and CLI are open source, forever. Outlet Cloud is the hosted layer for
+      teams that want private registries without running the infrastructure.
+    </p>
+
+    <div class="mx-auto mt-12 grid max-w-4xl gap-6 md:grid-cols-2">
+      {tiers.map((t) => (
+        <div class={`flex flex-col rounded-lg border p-8 ${t.highlight ? 'border-zinc-900 shadow-sm' : 'border-border'}`}>
+          <h2 class="text-lg font-semibold">{t.name}</h2>
+          <p class="mt-1 text-sm text-muted-foreground">{t.tagline}</p>
+          <p class="mt-6 text-4xl font-bold tracking-tight">{t.price}</p>
+          <p class="text-sm text-muted-foreground">{t.period}</p>
+          <ul class="mt-8 flex-1 space-y-3 text-sm">
+            {t.features.map((f) => (
+              <li class="flex gap-3">
+                <svg class="mt-1 h-3.5 w-3.5 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M20 6 9 17l-5-5" /></svg>
+                {f}
+              </li>
+            ))}
+          </ul>
+          <a
+            href={t.cta.href}
+            class={`mt-8 rounded-md px-5 py-2.5 text-center text-sm font-medium transition ${t.cta.primary ? 'bg-primary text-primary-foreground hover:opacity-90' : 'border border-border hover:bg-muted'}`}
+          >
+            {t.cta.label}
+          </a>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <section class="mx-auto max-w-3xl px-6 pb-20">
+    <h2 class="text-center text-2xl font-bold tracking-tight">Frequently asked questions</h2>
+    <div class="mt-8 divide-y divide-border rounded-lg border border-border">
+      <details class="group p-6">
+        <summary class="cursor-pointer font-medium">Will the open-source CLI stay free?</summary>
+        <p class="mt-3 text-sm text-muted-foreground">
+          Yes. The CLI, the public registry and every adapter in it are and will remain free.
+          Outlet Cloud only charges for the hosted platform: private registries, teams, audit.
+        </p>
+      </details>
+      <details class="group p-6">
+        <summary class="cursor-pointer font-medium">Do I depend on Outlet at runtime?</summary>
+        <p class="mt-3 text-sm text-muted-foreground">
+          No. Installed code is copied into your repository and compiled as your own code.
+          Cancelling a subscription or uninstalling the CLI breaks nothing.
+        </p>
+      </details>
+      <details class="group p-6">
+        <summary class="cursor-pointer font-medium">When does Outlet Cloud launch?</summary>
+        <p class="mt-3 text-sm text-muted-foreground">
+          The open-source MVP is complete (engine, CLI, email concern). Distribution is being
+          deployed now; Outlet Cloud follows. Join the early access to be notified first.
+        </p>
+      </details>
+    </div>
+  </section>
+</Base>

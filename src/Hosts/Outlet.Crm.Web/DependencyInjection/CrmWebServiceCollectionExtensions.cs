@@ -2,6 +2,8 @@ using Outlet.Crm.Application.Alerts;
 using Outlet.Crm.Application.Analytics;
 using Outlet.Crm.Application.ApiMetrics;
 using Outlet.Crm.Application.Feedback;
+using Outlet.Crm.Application.Invoices;
+using Outlet.Crm.Application.Objectives;
 using Outlet.Crm.Application.Organizations;
 using Outlet.Crm.Application.Payments;
 using Outlet.Crm.Application.Products;
@@ -57,6 +59,15 @@ public static class CrmWebServiceCollectionExtensions
         services.AddScoped<AcknowledgeAlertUseCase>();
         services.AddScoped<GetAlertsUseCase>();
         services.AddScoped<GetRevenueMetricsUseCase>();
+        services.AddScoped<GetProductHealthUseCase>();
+        services.AddScoped<SetObjectiveUseCase>();
+        services.AddScoped<DeleteObjectiveUseCase>();
+        services.AddScoped<GetObjectivesProgressUseCase>();
+        services.AddScoped<CreateInvoiceUseCase>();
+        services.AddScoped<IssueInvoiceUseCase>();
+        services.AddScoped<MarkInvoicePaidUseCase>();
+        services.AddScoped<CancelInvoiceUseCase>();
+        services.AddScoped<GetInvoicesUseCase>();
 
         return services;
     }

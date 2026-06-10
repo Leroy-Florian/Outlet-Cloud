@@ -3,6 +3,8 @@ using Outlet.Crm.Domain.Alerts;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.ApiMetrics;
 using Outlet.Crm.Domain.Feedback;
+using Outlet.Crm.Domain.Invoices;
+using Outlet.Crm.Domain.Objectives;
 using Outlet.Crm.Domain.Organizations;
 using Outlet.Crm.Domain.Payments;
 using Outlet.Crm.Domain.Products;
@@ -33,6 +35,10 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options) : DbCon
     public DbSet<Feedback> FeedbackItems => Set<Feedback>();
 
     public DbSet<Alert> Alerts => Set<Alert>();
+
+    public DbSet<Objective> Objectives => Set<Objective>();
+
+    public DbSet<Invoice> Invoices => Set<Invoice>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrmDbContext).Assembly);

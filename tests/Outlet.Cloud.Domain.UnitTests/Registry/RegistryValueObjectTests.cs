@@ -82,4 +82,10 @@ public sealed class RegistryValueObjectTests
         PublishedFile.From("a.cs", "x").Should().Be(PublishedFile.From("a.cs", "x"));
         PublishedFile.From("a.cs", "x").Should().NotBe(PublishedFile.From("a.cs", "y"));
     }
+
+    [Fact]
+    public void Should_NotBeEqual_When_PublishedFilePathsDiffer()
+    {
+        PublishedFile.From("a.cs", "x").Should().NotBe(PublishedFile.From("b.cs", "x"));
+    }
 }

@@ -81,6 +81,32 @@ public sealed class RecordPaymentUseCaseTests
     }
 
     [Fact]
+    public async Task Should_Fail_When_SourceIsBlank()
+    {
+        var result = await UseCase.HandleAsync(
+            new RecordPaymentCommand(_product.Id.Value, null, 10m, "EUR", "  ", "pi_123"), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("Payment.SourceRequired:");
+        _repository.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_SettlingANonPendingPayment()
+    {
+        await UseCase.HandleAsync(
+            new RecordPaymentCommand(_product.Id.Value, null, 10m, "EUR", "stripe", "pi_1"), CancellationToken.None);
+        var settle = new SettlePaymentUseCase(_repository);
+        await settle.HandleAsync(new SettlePaymentCommand(_repository.Items[0].Id), CancellationToken.None);
+
+        var result = await settle.HandleAsync(new SettlePaymentCommand(_repository.Items[0].Id), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("Payment.NotPending:");
+        _repository.UpdateCount.Should().Be(1);
+    }
+
+    [Fact]
     public async Task Should_SettlePayment_When_ItExists()
     {
         await UseCase.HandleAsync(

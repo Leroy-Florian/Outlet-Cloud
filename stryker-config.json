@@ -23,6 +23,8 @@
       "!**/GlobalUsings.cs",
       "!**/Outlet.Cli/**",
       "!**/Outlet.Core.Infrastructure/**",
+    "!**/Outlet.*.Infrastructure/**",
+    "!**/Hosts/**",
       "!**/Kernel.Shared/**/Mediator/**",
       "!**/Kernel.Shared/**/UtcDateTimeProvider.cs"
     ],

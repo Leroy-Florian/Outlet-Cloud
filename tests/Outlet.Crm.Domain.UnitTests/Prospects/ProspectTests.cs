@@ -49,6 +49,18 @@ public sealed class ProspectTests
     }
 
     [Fact]
+    public void Should_Fail_When_AdvancingToTheCurrentStage()
+    {
+        var prospect = CreateProspect();
+        prospect.Advance(ProspectStage.Contacted);
+
+        var result = prospect.Advance(ProspectStage.Contacted);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(ProspectErrors.InvalidTransition);
+    }
+
+    [Fact]
     public void Should_AllowMarkingLost_When_FromAnyOpenStage()
     {
         var prospect = CreateProspect();

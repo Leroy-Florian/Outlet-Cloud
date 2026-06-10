@@ -62,6 +62,24 @@ public sealed class SubscriptionValueObjectTests
     }
 
     [Fact]
+    public void Should_AllowReadingOnly_When_EntitlementsAreReadOnly()
+    {
+        Entitlements.ReadOnly.CanPublishPrivateItems.Should().BeFalse();
+        Entitlements.ReadOnly.CanReadPrivateRegistry.Should().BeTrue();
+        Entitlements.ReadOnly.MaxPrivateItems.Should().Be(0);
+        Entitlements.ReadOnly.Analytics.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Should_NotBeEqual_When_TrialPeriodsDifferOnlyByStartDate()
+    {
+        var end = new DateOnly(2026, 6, 15);
+
+        TrialPeriod.Between(new DateOnly(2026, 6, 1), end).Should()
+            .NotBe(TrialPeriod.Between(new DateOnly(2026, 6, 2), end));
+    }
+
+    [Fact]
     public void Should_CompareByValues_When_EntitlementsAreResolvedTwice()
     {
         Entitlements.For(PlanTier.Pro).Should().Be(Entitlements.For(PlanTier.Pro));

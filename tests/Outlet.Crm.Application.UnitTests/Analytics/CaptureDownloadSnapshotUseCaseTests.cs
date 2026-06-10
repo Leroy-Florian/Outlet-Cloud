@@ -59,6 +59,28 @@ public sealed class CaptureDownloadSnapshotUseCaseTests
     }
 
     [Fact]
+    public async Task Should_Fail_When_PackageIdIsBlank()
+    {
+        var result = await UseCase(Result.Success(1L)).HandleAsync(
+            new CaptureDownloadSnapshotCommand(_product.Id.Value, PackageRegistry.NuGet, "  "), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("PackageId.Empty:");
+        _repository.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_RegistryReportsANegativeCount()
+    {
+        var result = await UseCase(Result.Success(-1L)).HandleAsync(
+            new CaptureDownloadSnapshotCommand(_product.Id.Value, PackageRegistry.NuGet, "outlet.cli"), CancellationToken.None);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("DownloadSnapshot.NegativeCount:");
+        _repository.Items.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Should_PropagateError_When_RegistryFails()
     {
         const string error = "NuGetStats.HttpError: boom";

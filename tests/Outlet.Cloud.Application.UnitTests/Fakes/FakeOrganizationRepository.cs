@@ -27,8 +27,11 @@ public sealed class FakeOrganizationRepository : IOrganizationRepository
         return Task.CompletedTask;
     }
 
+    public int UpdateCount { get; private set; }
+
     public Task UpdateAsync(Organization organization, CancellationToken cancellationToken = default)
     {
+        UpdateCount++;
         _byId[organization.Id.Value] = organization;
         return Task.CompletedTask;
     }

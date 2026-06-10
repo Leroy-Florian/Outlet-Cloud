@@ -65,6 +65,18 @@ public sealed class OrganizationValueObjectTests
     }
 
     [Fact]
+    public void Should_NotBeEqual_When_OrganizationIdsDiffer()
+    {
+        OrganizationId.From(Guid.NewGuid()).Should().NotBe(OrganizationId.From(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public void Should_NotBeEqual_When_OrganizationNamesDiffer()
+    {
+        OrganizationName.From("Acme Corp").Should().NotBe(OrganizationName.From("Globex"));
+    }
+
+    [Fact]
     public void Should_AcceptName_When_ExactlyAtMaxLength()
     {
         var name = OrganizationName.From(new string('a', OrganizationName.MaxLength));

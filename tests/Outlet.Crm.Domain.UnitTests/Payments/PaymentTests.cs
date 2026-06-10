@@ -70,6 +70,39 @@ public sealed class PaymentTests
     }
 
     [Fact]
+    public void Should_MarkFailed_When_FailingAPendingPayment()
+    {
+        var payment = CreatePayment();
+
+        var result = payment.Fail();
+
+        result.IsSuccess.Should().BeTrue();
+        payment.Status.Should().Be(PaymentStatus.Failed);
+    }
+
+    [Fact]
+    public void Should_Fail_When_FailingANonPendingPayment()
+    {
+        var payment = CreatePayment();
+        payment.Settle();
+
+        var result = payment.Fail();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(PaymentErrors.NotPending);
+        payment.Status.Should().Be(PaymentStatus.Settled);
+    }
+
+    [Fact]
+    public void Should_AcceptZeroAmount_When_CreatingMoney()
+    {
+        var money = Money.Create(0m, "EUR");
+
+        money.IsSuccess.Should().BeTrue();
+        money.Value!.Amount.Should().Be(0m);
+    }
+
+    [Fact]
     public void Should_NormalizeCurrency_When_CreatingMoney()
     {
         var money = Money.Create(10m, " eur ");

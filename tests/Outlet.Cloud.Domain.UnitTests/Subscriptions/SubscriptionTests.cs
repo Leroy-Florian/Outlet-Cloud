@@ -113,6 +113,7 @@ public sealed class SubscriptionTests
         result.IsSuccess.Should().BeTrue();
         subscription.Status.Should().Be(SubscriptionStatus.Active);
         subscription.ResolveEntitlements().CanPublishPrivateItems.Should().BeTrue();
+        subscription.DomainEvents.Should().Contain(e => e is SubscriptionReactivatedEvent);
     }
 
     [Fact]
@@ -126,6 +127,7 @@ public sealed class SubscriptionTests
         result.IsSuccess.Should().BeTrue();
         subscription.Status.Should().Be(SubscriptionStatus.Expired);
         subscription.ResolveEntitlements().CanReadPrivateRegistry.Should().BeFalse();
+        subscription.DomainEvents.Should().Contain(e => e is SubscriptionExpiredEvent);
     }
 
     [Fact]

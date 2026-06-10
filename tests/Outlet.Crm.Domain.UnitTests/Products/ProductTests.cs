@@ -94,12 +94,55 @@ public sealed class ProductTests
     }
 
     [Fact]
-    public void Should_RejectNegativeCounters_When_CreatingRepositorySnapshot()
+    public void Should_ParseOwnerAndName_When_RepositoryNameIsValid()
+    {
+        var result = RepositoryName.Create(" Leroy-Florian/Outlet-CLI ");
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Owner.Should().Be("Leroy-Florian");
+        result.Value.Name.Should().Be("Outlet-CLI");
+        result.Value.FullName.Should().Be("Leroy-Florian/Outlet-CLI");
+    }
+
+    [Theory]
+    [InlineData(-1, 0, 0)]
+    [InlineData(0, -1, 0)]
+    [InlineData(0, 0, -1)]
+    public void Should_RejectNegativeCounters_When_CreatingRepositorySnapshot(int openIssues, int stars, int forks)
     {
         var result = RepositorySnapshot.Create(
-            ProductId.New(), RepositoryName.Create("a/b").Value!, -1, 0, 0, Now);
+            ProductId.New(), RepositoryName.Create("a/b").Value!, openIssues, stars, forks, Now);
 
         result.IsFailure.Should().BeTrue();
         result.Error.Should().StartWith("RepositorySnapshot.NegativeCount:");
+    }
+
+    [Fact]
+    public void Should_AcceptZeroCounters_When_CreatingRepositorySnapshot()
+    {
+        var result = RepositorySnapshot.Create(
+            ProductId.New(), RepositoryName.Create("a/b").Value!, 0, 0, 0, Now);
+
+        result.IsSuccess.Should().BeTrue();
+    }
+
+    [Fact]
+    public void Should_AcceptZeroDownloads_When_CreatingDownloadSnapshot()
+    {
+        var result = DownloadSnapshot.Create(
+            ProductId.New(), PackageRegistry.Npm, PackageId.Create("pkg").Value!, 0, Now);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.TotalDownloads.Should().Be(0);
+    }
+
+    [Fact]
+    public void Should_RejectNegativeDownloads_When_CreatingDownloadSnapshot()
+    {
+        var result = DownloadSnapshot.Create(
+            ProductId.New(), PackageRegistry.Npm, PackageId.Create("pkg").Value!, -1, Now);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().StartWith("DownloadSnapshot.NegativeCount:");
     }
 }

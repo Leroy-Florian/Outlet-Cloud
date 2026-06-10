@@ -62,6 +62,14 @@ public sealed class PersonalAccessTokenTests
     }
 
     [Fact]
+    public void Should_BeInvalid_When_CheckedExactlyAtExpiry()
+    {
+        var token = PersonalAccessToken.Create(AnyId, AnyOwner, "CI token", AnyHash, AnyScopes, Now, Now.AddHours(1)).Value!;
+
+        token.IsValidAt(Now.AddHours(1)).Should().BeFalse();
+    }
+
+    [Fact]
     public void Should_RaiseRevokedEvent_When_RevokedFirstTime()
     {
         var token = PersonalAccessToken.Create(AnyId, AnyOwner, "CI token", AnyHash, AnyScopes, Now).Value!;

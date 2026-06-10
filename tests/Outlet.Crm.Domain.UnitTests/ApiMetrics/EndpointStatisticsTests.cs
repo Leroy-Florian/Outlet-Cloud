@@ -40,6 +40,28 @@ public sealed class EndpointStatisticsTests
     }
 
     [Fact]
+    public void Should_CountOnlyServerErrors_When_StatusIsAtTheBoundary()
+    {
+        var stats = EndpointStatisticsCalculator.Compute(
+        [
+            Sample("/api/a", 499, 10),
+            Sample("/api/a", 500, 20),
+            Sample("/api/a", 503, 30),
+        ]);
+
+        stats.Single().ErrorCount.Should().Be(2);
+    }
+
+    [Fact]
+    public void Should_AcceptZeroDuration_When_CreatingSample()
+    {
+        var result = ApiMetricSample.Create(Product, "/api/a", 200, 0, Now);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.DurationMs.Should().Be(0);
+    }
+
+    [Fact]
     public void Should_RejectNegativeDuration_When_CreatingSample()
     {
         var result = ApiMetricSample.Create(Product, "/api/a", 200, -1, Now);

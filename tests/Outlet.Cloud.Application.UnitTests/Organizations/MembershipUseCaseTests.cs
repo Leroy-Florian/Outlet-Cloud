@@ -74,6 +74,7 @@ public sealed class MembershipUseCaseTests
         result.IsSuccess.Should().BeTrue();
         var org = await _organizations.GetByIdAsync(OrganizationId.From(_orgId));
         org!.Memberships.Should().ContainSingle();
+        _organizations.UpdateCount.Should().Be(2);
     }
 
     [Fact]
@@ -89,6 +90,7 @@ public sealed class MembershipUseCaseTests
         result.IsSuccess.Should().BeTrue();
         var org = await _organizations.GetByIdAsync(OrganizationId.From(_orgId));
         org!.Memberships.Should().Contain(m => m.Id == MemberUserId.From(member) && m.Role == OrganizationRole.Admin);
+        _organizations.UpdateCount.Should().Be(2);
     }
 
     [Fact]

@@ -8,6 +8,8 @@ const links = [
   { to: "/prospects", label: "Prospects", end: true },
   { to: "/paiements", label: "Paiements", end: true },
   { to: "/revenus", label: "Revenus", end: true },
+  { to: "/objectifs", label: "Objectifs", end: true },
+  { to: "/factures", label: "Factures", end: true },
   { to: "/alertes", label: "Alertes", end: true },
   { to: "/feedback", label: "Feedback", end: true },
 ]

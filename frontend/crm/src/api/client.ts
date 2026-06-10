@@ -256,6 +256,71 @@ export interface RepositorySnapshotDto {
   readonly capturedAt: string
 }
 
+export interface ProductHealthInputsDto {
+  readonly daysSinceLatestRelease: number | null
+  readonly downloadsPercentChange: number | null
+  readonly openIssuesGrowthPercent: number | null
+  readonly starsGrowthPercent: number | null
+  readonly recentCaptureFailures: number
+}
+
+export interface ProductHealthComponentsDto {
+  readonly releaseFreshness: number
+  readonly downloadTrend: number
+  readonly repoActivity: number
+  readonly snapshotReliability: number
+}
+
+export interface ProductHealthDto {
+  readonly total: number
+  readonly label: string
+  readonly components: ProductHealthComponentsDto
+  readonly inputs: ProductHealthInputsDto
+}
+
+export type ObjectiveMetric = "Downloads" | "PageViews" | "Revenue" | "Prospects"
+
+export interface ObjectiveProgressDto {
+  readonly id: string
+  readonly productId: string | null
+  readonly metric: string
+  readonly targetValue: number
+  readonly actualValue: number
+  /** Pourcentage brut, non plafonné — l'affichage est clipé à 100. */
+  readonly progressPercent: number
+}
+
+export interface ObjectivesProgressDto {
+  /** "yyyy-MM" */
+  readonly month: string
+  readonly objectives: ReadonlyArray<ObjectiveProgressDto>
+}
+
+export type InvoiceStatus = "Draft" | "Issued" | "Paid" | "Cancelled"
+
+export interface InvoiceLineDto {
+  readonly description: string
+  readonly quantity: number
+  readonly unitPrice: number
+  readonly lineTotal: number
+}
+
+export interface InvoiceDto {
+  readonly id: string
+  readonly invoiceNumber: string
+  readonly customerName: string
+  readonly customerEmail: string | null
+  readonly customerAddress: string | null
+  readonly status: string
+  readonly currency: string
+  readonly total: number
+  readonly lines: ReadonlyArray<InvoiceLineDto>
+  readonly createdAt: string
+  readonly issuedAt: string | null
+  readonly paidAt: string | null
+  readonly paymentId: string | null
+}
+
 // ---------------------------------------------------------------------------
 // Produits
 // ---------------------------------------------------------------------------
@@ -485,3 +550,68 @@ export const acknowledgeAlert = (alertId: string) =>
 
 export const evaluateAlerts = (productId: string) =>
   sendJson<ReadonlyArray<AlertDto>>("POST", `/api/products/${productId}/alerts/evaluate`)
+
+// ---------------------------------------------------------------------------
+// Santé produit
+// ---------------------------------------------------------------------------
+
+export const getProductHealth = (productId: string) =>
+  getJson<ProductHealthDto>(`/api/products/${productId}/health`)
+
+// ---------------------------------------------------------------------------
+// Objectifs
+// ---------------------------------------------------------------------------
+
+export interface SetObjectiveInput {
+  readonly productId: string | null
+  readonly metric: ObjectiveMetric
+  /** "yyyy-MM" */
+  readonly month: string
+  readonly targetValue: number
+}
+
+export const setObjective = (input: SetObjectiveInput) =>
+  sendJson<{ id: string }>("PUT", "/api/objectives/", input)
+
+export const deleteObjective = (objectiveId: string) =>
+  sendJson<void>("DELETE", `/api/objectives/${objectiveId}`)
+
+export const getObjectivesProgress = (month?: string) =>
+  getJson<ObjectivesProgressDto>(
+    `/api/objectives/progress${month === undefined ? "" : `?month=${month}`}`,
+  )
+
+// ---------------------------------------------------------------------------
+// Factures
+// ---------------------------------------------------------------------------
+
+export interface InvoiceLineInput {
+  readonly description: string
+  readonly quantity: number
+  readonly unitPrice: number
+  readonly currency: string
+}
+
+export interface CreateInvoiceInput {
+  readonly customerName: string
+  readonly customerEmail: string | null
+  readonly customerAddress: string | null
+  readonly lines: ReadonlyArray<InvoiceLineInput>
+}
+
+export const createInvoice = (input: CreateInvoiceInput) =>
+  sendJson<{ id: string; invoiceNumber: string }>("POST", "/api/invoices/", input)
+
+export const listInvoices = (status?: InvoiceStatus) =>
+  getJson<ReadonlyArray<InvoiceDto>>(
+    `/api/invoices/${status === undefined ? "" : `?status=${status}`}`,
+  )
+
+export const issueInvoice = (invoiceId: string) =>
+  sendJson<void>("POST", `/api/invoices/${invoiceId}/issue`)
+
+export const payInvoice = (invoiceId: string, paymentId: string | null) =>
+  sendJson<void>("POST", `/api/invoices/${invoiceId}/pay`, { paymentId })
+
+export const cancelInvoice = (invoiceId: string) =>
+  sendJson<void>("POST", `/api/invoices/${invoiceId}/cancel`)

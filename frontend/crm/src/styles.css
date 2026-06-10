@@ -610,3 +610,113 @@ textarea:focus {
   flex-wrap: wrap;
   margin-bottom: 16px;
 }
+
+/* ---- Barres de progression (objectifs) ---- */
+
+.progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: var(--card-hover);
+  border: 1px solid var(--border-strong);
+  overflow: hidden;
+  flex: 1;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--blue);
+  transition: width 0.3s ease;
+}
+
+.progress-fill.complete {
+  background: var(--green);
+}
+
+.progress-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.progress-percent {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text-muted);
+  min-width: 56px;
+  text-align: right;
+}
+
+.progress-percent.complete {
+  color: var(--green);
+  font-weight: 600;
+}
+
+/* ---- Santé produit ---- */
+
+.health-layout {
+  display: flex;
+  gap: 28px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.health-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.health-ring-inner {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: var(--card);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.health-total {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.health-total-max {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.health-components {
+  flex: 1;
+  min-width: 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.health-component-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+
+.health-component-label .num {
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+
+.health-inputs {
+  margin-top: 14px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}

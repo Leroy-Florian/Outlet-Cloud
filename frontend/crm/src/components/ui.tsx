@@ -109,6 +109,46 @@ export const AlertTypeBadge = ({ type }: { type: string }) => {
   }
 }
 
+/** Libellés FR des métriques d'objectif (contrat : enum sérialisé en string). */
+export const objectiveMetricLabel = (metric: string) => {
+  switch (metric) {
+    case "Downloads":
+      return "Téléchargements"
+    case "PageViews":
+      return "Pages vues"
+    case "Revenue":
+      return "Revenu"
+    case "Prospects":
+      return "Prospects"
+    default:
+      return metric
+  }
+}
+
+const rawPercentFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 1 })
+
+/**
+ * Barre de progression d'objectif : la barre est plafonnée à 100 %, le texte
+ * affiche le pourcentage brut ; vert dès que l'objectif est atteint (≥ 100 %).
+ */
+export const ObjectiveProgressBar = ({ percent }: { percent: number }) => {
+  const clipped = Math.min(Math.max(percent, 0), 100)
+  const complete = percent >= 100
+  return (
+    <div className="progress-row">
+      <div className="progress-track">
+        <div
+          className={complete ? "progress-fill complete" : "progress-fill"}
+          style={{ width: `${clipped}%` }}
+        />
+      </div>
+      <span className={complete ? "progress-percent complete" : "progress-percent"}>
+        {rawPercentFormat.format(percent)} %
+      </span>
+    </div>
+  )
+}
+
 export const PERIOD_OPTIONS = [7, 30, 90] as const
 
 /** Sélecteur de période global (7/30/90 j) — pilote le paramètre `days` des analytics. */

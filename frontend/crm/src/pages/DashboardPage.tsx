@@ -4,6 +4,7 @@ import {
   acknowledgeAlert,
   getDailyDownloads,
   getDailyTraffic,
+  getObjectivesProgress,
   getPortfolio,
   listAlerts,
   listPayments,
@@ -16,6 +17,7 @@ import {
   EmptyState,
   ErrorBanner,
   Loading,
+  ObjectiveProgressBar,
   PeriodSelector,
   StatCard,
   TrendBadge,
@@ -23,6 +25,7 @@ import {
   formatMoney,
   formatNumber,
   lastDaysRange,
+  objectiveMetricLabel,
 } from "../components/ui"
 import { DailyDownloadsChart, DailyTrafficChart } from "../components/charts"
 
@@ -31,6 +34,7 @@ export const DashboardPage = () => {
   const prospects = useQuery(listProspects, [])
   const payments = useQuery(listPayments, [])
   const alerts = useQuery(() => listAlerts({ acknowledged: false }), [])
+  const objectives = useQuery(() => getObjectivesProgress(), [])
 
   const [acknowledging, setAcknowledging] = useState<string | null>(null)
   const [alertError, setAlertError] = useState<string | null>(null)
@@ -156,6 +160,48 @@ export const DashboardPage = () => {
                       >
                         {acknowledging === alert.id ? "…" : "Acquitter"}
                       </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <div className="card section">
+        <h2 className="card-title">
+          Objectifs du mois{" "}
+          <Link to="/objectifs" className="dim" style={{ fontSize: 13 }}>
+            tout voir →
+          </Link>
+        </h2>
+        {objectives.loading ? (
+          <Loading />
+        ) : objectives.error !== null ? (
+          <ErrorBanner message={objectives.error} />
+        ) : (objectives.data?.objectives ?? []).length === 0 ? (
+          <EmptyState title="Aucun objectif ce mois-ci">
+            Fixez vos cibles mensuelles dans l'onglet <Link to="/objectifs">Objectifs</Link>.
+          </EmptyState>
+        ) : (
+          <table className="table">
+            <tbody>
+              {[...(objectives.data?.objectives ?? [])]
+                .sort((a, b) => b.progressPercent - a.progressPercent)
+                .slice(0, 3)
+                .map((o) => (
+                  <tr key={o.id}>
+                    <td>
+                      <strong>{objectiveMetricLabel(o.metric)}</strong>
+                      <div className="dim">
+                        {o.productId === null ? "Global" : productName(o.productId)}
+                      </div>
+                    </td>
+                    <td className="num">
+                      {formatNumber(o.actualValue)} / {formatNumber(o.targetValue)}
+                    </td>
+                    <td style={{ width: "45%" }}>
+                      <ObjectiveProgressBar percent={o.progressPercent} />
                     </td>
                   </tr>
                 ))}

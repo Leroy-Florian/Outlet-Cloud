@@ -30,6 +30,7 @@ import {
   DailyTrafficChart,
   RepositoryHistoryChart,
 } from "../components/charts"
+import { HealthCard } from "../components/HealthCard"
 
 const RepositoryHistorySection = ({
   productId,
@@ -322,6 +323,8 @@ export const ProductDetailPage = () => {
           />
         </div>
       ) : null}
+
+      <HealthCard productId={product.id} />
 
       <div className="card section">
         <h2 className="card-title">Nouveaux téléchargements par jour ({days} j, par source)</h2>

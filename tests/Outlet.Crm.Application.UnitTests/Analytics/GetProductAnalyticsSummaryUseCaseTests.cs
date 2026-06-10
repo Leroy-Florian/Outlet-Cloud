@@ -90,4 +90,62 @@ public sealed class GetProductAnalyticsSummaryUseCaseTests
 
         result.Value!.PageViewsLast30Days.Should().Be(1);
     }
+
+    [Fact]
+    public async Task Should_DefaultPeriodToThirtyDays_When_DaysIsOmitted()
+    {
+        var product = Seed();
+
+        var result = await BuildUseCase().HandleAsync(
+            new GetProductAnalyticsSummaryQuery(product.Id.Value), CancellationToken.None);
+
+        result.Value!.PeriodDays.Should().Be(30);
+    }
+
+    [Fact]
+    public async Task Should_ClampPeriodDays_When_DaysIsOutOfRange()
+    {
+        var product = Seed();
+
+        (await BuildUseCase().HandleAsync(new GetProductAnalyticsSummaryQuery(product.Id.Value, 0)))
+            .Value!.PeriodDays.Should().Be(1);
+        (await BuildUseCase().HandleAsync(new GetProductAnalyticsSummaryQuery(product.Id.Value, 400)))
+            .Value!.PeriodDays.Should().Be(365);
+    }
+
+    [Fact]
+    public async Task Should_CompareAgainstPreviousWindow_When_DaysIsProvided()
+    {
+        var product = Seed();
+        // 20-day window: current = days -19..0, previous = days -39..-20.
+        _traffic.Items.Add(TrafficSample.Create(product.Id, "/", null, null, Now.AddDays(-40)).Value!); // excluded
+        _traffic.Items.Add(TrafficSample.Create(product.Id, "/", null, null, Now.AddDays(-39)).Value!);
+        _traffic.Items.Add(TrafficSample.Create(product.Id, "/", null, null, Now.AddDays(-20)).Value!);
+        _traffic.Items.Add(TrafficSample.Create(product.Id, "/", null, null, Now).Value!);
+
+        var result = await BuildUseCase().HandleAsync(
+            new GetProductAnalyticsSummaryQuery(product.Id.Value, 20), CancellationToken.None);
+
+        var summary = result.Value!;
+        summary.PeriodDays.Should().Be(20);
+        summary.PageViews.PreviousPeriod.Should().Be(2);
+        summary.PageViews.CurrentPeriod.Should().Be(1);
+        summary.PageViews.PercentChange.Should().Be(-50.0m);
+    }
+
+    [Fact]
+    public async Task Should_ReturnNullPercentChange_When_PreviousWindowHasNoDownloads()
+    {
+        var product = Seed();
+        var packageId = PackageId.Create("outlet.cli").Value!;
+        _downloads.Items.Add(DownloadSnapshot.Create(product.Id, PackageRegistry.NuGet, packageId, 100, Now.AddDays(-1)).Value!);
+        _downloads.Items.Add(DownloadSnapshot.Create(product.Id, PackageRegistry.NuGet, packageId, 150, Now).Value!);
+
+        var result = await BuildUseCase().HandleAsync(
+            new GetProductAnalyticsSummaryQuery(product.Id.Value, 7), CancellationToken.None);
+
+        result.Value!.Downloads.CurrentPeriod.Should().Be(50);
+        result.Value!.Downloads.PreviousPeriod.Should().Be(0);
+        result.Value!.Downloads.PercentChange.Should().BeNull();
+    }
 }

@@ -41,7 +41,7 @@ public sealed class ErrorMessageAndIdentityTests
         var organizationId = OrganizationId.New();
 
         var prospect = Prospect.Create(
-            productId, organizationId, "Ada", Email.Create("ada@example.com").Value!, "Acme", Now).Value!;
+            productId, organizationId, "Ada", Email.Create("ada@example.com").Value!, "Acme", null, Now).Value!;
 
         prospect.ProductId.Should().Be(productId);
         prospect.OrganizationId.Should().Be(organizationId);

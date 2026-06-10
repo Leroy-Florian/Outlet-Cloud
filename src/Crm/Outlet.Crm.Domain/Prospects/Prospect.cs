@@ -1,4 +1,5 @@
 using Outlet.Crm.Domain.Organizations;
+using Outlet.Crm.Domain.Payments;
 using Outlet.Crm.Domain.Products;
 using Outlet.Kernel.Shared;
 
@@ -15,6 +16,7 @@ public sealed class Prospect : AggregateRoot<ProspectId>
         string name,
         Email email,
         string? company,
+        Money? estimatedValue,
         DateTime createdAt)
         : base(id)
     {
@@ -23,6 +25,7 @@ public sealed class Prospect : AggregateRoot<ProspectId>
         Name = name;
         Email = email;
         Company = company;
+        EstimatedValue = estimatedValue;
         CreatedAt = createdAt;
         Stage = ProspectStage.New;
     }
@@ -35,9 +38,15 @@ public sealed class Prospect : AggregateRoot<ProspectId>
 
     public Email Email { get; }
 
-    public string? Company { get; }
+    public string? Company { get; private set; }
+
+    /// <summary>Expected deal value; null until the prospect is qualified.</summary>
+    public Money? EstimatedValue { get; private set; }
 
     public ProspectStage Stage { get; private set; }
+
+    /// <summary>Why the deal was lost; only set via <see cref="Lose"/>.</summary>
+    public string? LossReason { get; private set; }
 
     public DateTime CreatedAt { get; }
 
@@ -49,6 +58,7 @@ public sealed class Prospect : AggregateRoot<ProspectId>
         string name,
         Email email,
         string? company,
+        Money? estimatedValue,
         DateTime createdAt)
     {
         if (string.IsNullOrWhiteSpace(name))
@@ -56,7 +66,8 @@ public sealed class Prospect : AggregateRoot<ProspectId>
             return Result.Failure<Prospect>(ProspectErrors.NameRequired);
         }
 
-        return Result.Success(new Prospect(ProspectId.New(), productId, organizationId, name.Trim(), email, company, createdAt));
+        return Result.Success(new Prospect(
+            ProspectId.New(), productId, organizationId, name.Trim(), email, company, estimatedValue, createdAt));
     }
 
     public Result Advance(ProspectStage target)
@@ -72,6 +83,40 @@ public sealed class Prospect : AggregateRoot<ProspectId>
         }
 
         Stage = target;
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// PATCH semantics for the qualification fields: the estimated value and the
+    /// company are both replaced (null clears). Closed prospects are immutable.
+    /// </summary>
+    public Result UpdateDetails(Money? estimatedValue, string? company)
+    {
+        if (Stage is ProspectStage.Won or ProspectStage.Lost)
+        {
+            return Result.Failure(ProspectErrors.AlreadyClosed);
+        }
+
+        EstimatedValue = estimatedValue;
+        Company = string.IsNullOrWhiteSpace(company) ? null : company.Trim();
+        return Result.Success();
+    }
+
+    /// <summary>Closes the prospect as Lost with a mandatory reason.</summary>
+    public Result Lose(string reason)
+    {
+        if (string.IsNullOrWhiteSpace(reason))
+        {
+            return Result.Failure(ProspectErrors.LossReasonRequired);
+        }
+
+        var advanced = Advance(ProspectStage.Lost);
+        if (advanced.IsFailure)
+        {
+            return advanced;
+        }
+
+        LossReason = reason.Trim();
         return Result.Success();
     }
 

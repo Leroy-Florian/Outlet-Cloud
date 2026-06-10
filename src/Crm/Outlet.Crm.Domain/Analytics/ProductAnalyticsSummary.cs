@@ -12,13 +12,18 @@ public sealed record ProductAnalyticsSummary(
     long DownloadsLast30Days,
     long PageViewsLast7Days,
     long PageViewsLast30Days,
+    int PeriodDays,
+    PeriodComparison Downloads,
+    PeriodComparison PageViews,
     IReadOnlyList<PackageTotal> Packages,
     IReadOnlyList<RepositoryTotal> Repositories);
 
 /// <summary>
 /// One-stop dashboard summary: latest cumulative totals per package and per
-/// repository, plus new downloads and page views over the trailing 7 and 30
-/// days (inclusive windows ending today).
+/// repository, new downloads and page views over the trailing 7 and 30 days
+/// (inclusive windows ending today), plus a comparison of the trailing
+/// <c>periodDays</c> window against the immediately preceding window of the
+/// same length ("% vs previous period" badges).
 /// </summary>
 public static class ProductAnalyticsSummaryCalculator
 {
@@ -26,7 +31,8 @@ public static class ProductAnalyticsSummaryCalculator
         IEnumerable<DownloadSnapshot> downloadSnapshots,
         IEnumerable<RepositorySnapshot> repositorySnapshots,
         IEnumerable<TrafficSample> trafficSamples,
-        DateOnly today)
+        DateOnly today,
+        int periodDays)
     {
         List<DownloadSnapshot> downloads = [.. downloadSnapshots];
         List<TrafficSample> traffic = [.. trafficSamples];
@@ -50,12 +56,23 @@ public static class ProductAnalyticsSummaryCalculator
             })
             .OrderBy(r => r.Repository, StringComparer.Ordinal)];
 
+        var currentFrom = today.AddDays(-(periodDays - 1));
+        var previousTo = currentFrom.AddDays(-1);
+        var previousFrom = previousTo.AddDays(-(periodDays - 1));
+
         return new ProductAnalyticsSummary(
             packages.Sum(p => p.TotalDownloads),
             DailyDownloads.Compute(downloads, today.AddDays(-6), today).TotalDownloads,
             DailyDownloads.Compute(downloads, today.AddDays(-29), today).TotalDownloads,
             DailyTraffic.Compute(traffic, today.AddDays(-6), today).TotalPageViews,
             DailyTraffic.Compute(traffic, today.AddDays(-29), today).TotalPageViews,
+            periodDays,
+            PeriodComparison.Of(
+                DailyDownloads.Compute(downloads, currentFrom, today).TotalDownloads,
+                DailyDownloads.Compute(downloads, previousFrom, previousTo).TotalDownloads),
+            PeriodComparison.Of(
+                DailyTraffic.Compute(traffic, currentFrom, today).TotalPageViews,
+                DailyTraffic.Compute(traffic, previousFrom, previousTo).TotalPageViews),
             packages,
             repositories);
     }

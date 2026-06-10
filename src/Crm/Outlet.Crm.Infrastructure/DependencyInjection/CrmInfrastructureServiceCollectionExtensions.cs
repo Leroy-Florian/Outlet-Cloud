@@ -37,6 +37,7 @@ public static class CrmInfrastructureServiceCollectionExtensions
         services.AddScoped<IRepositorySnapshotRepository, EfRepositorySnapshotRepository>();
         services.AddScoped<IApiMetricRepository, EfApiMetricRepository>();
         services.AddScoped<ITrafficSampleRepository, EfTrafficSampleRepository>();
+        services.AddScoped<IFeedbackRepository, EfFeedbackRepository>();
 
         return services;
     }

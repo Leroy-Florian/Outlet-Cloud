@@ -1,5 +1,6 @@
 using Outlet.Crm.Application.Analytics;
 using Outlet.Crm.Application.ApiMetrics;
+using Outlet.Crm.Application.Feedback;
 using Outlet.Crm.Application.Organizations;
 using Outlet.Crm.Application.Payments;
 using Outlet.Crm.Application.Products;
@@ -7,6 +8,7 @@ using Outlet.Crm.Application.Ports;
 using Outlet.Crm.Application.Prospects;
 using Outlet.Crm.Application.Traffic;
 using Outlet.Crm.Domain.Analytics;
+using Outlet.Crm.Domain.Feedback;
 using Outlet.Crm.Domain.Prospects;
 using Outlet.Kernel.Shared;
 
@@ -62,8 +64,11 @@ public static class CrmEndpoints
                 ToHttp(await useCase.HandleAsync(new GetDailyTrafficQuery(productId, from, to), ct), Results.Ok));
 
         products.MapGet("/{productId:guid}/analytics/summary",
-            async (Guid productId, GetProductAnalyticsSummaryUseCase useCase, CancellationToken ct) =>
-                ToHttp(await useCase.HandleAsync(new GetProductAnalyticsSummaryQuery(productId), ct), Results.Ok));
+            async (Guid productId, int? days, GetProductAnalyticsSummaryUseCase useCase, CancellationToken ct) =>
+                ToHttp(await useCase.HandleAsync(new GetProductAnalyticsSummaryQuery(productId, days), ct), Results.Ok));
+
+        api.MapGet("/analytics/portfolio", async (int? days, GetPortfolioUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new GetPortfolioQuery(days), ct), Results.Ok));
 
         products.MapPost("/{productId:guid}/packages", async (Guid productId, TrackPackageRequest request, TrackPackageUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new TrackPackageCommand(productId, request.Registry, request.PackageId), ct)));
@@ -133,8 +138,25 @@ public static class CrmEndpoints
                 p.Name,
                 email = p.Email.Value,
                 p.Company,
+                estimatedValue = p.EstimatedValue?.Amount,
+                estimatedValueCurrency = p.EstimatedValue?.Currency,
                 stage = p.Stage.ToString(),
+                p.LossReason,
                 p.CreatedAt,
+            })));
+
+        prospects.MapGet("/stats", async (GetProspectPipelineStatsUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new GetProspectPipelineStatsQuery(), ct), report => Results.Ok(new
+            {
+                report.TotalProspects,
+                report.TotalEstimatedValue,
+                stages = report.Stages.Select(s => new
+                {
+                    stage = s.Stage.ToString(),
+                    s.Count,
+                    s.TotalEstimatedValue,
+                    s.ConversionRateToNext,
+                }),
             })));
 
         prospects.MapPost("/", async (CreateProspectCommand command, CreateProspectUseCase useCase, CancellationToken ct) =>
@@ -142,6 +164,51 @@ public static class CrmEndpoints
 
         prospects.MapPost("/{id:guid}/stage", async (Guid id, ProspectStage target, AdvanceProspectStageUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new AdvanceProspectStageCommand(new ProspectId(id), target), ct)));
+
+        prospects.MapPatch("/{id:guid}", async (Guid id, UpdateProspectRequest request, UpdateProspectUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(
+                new UpdateProspectCommand(new ProspectId(id), request.EstimatedValue, request.EstimatedValueCurrency, request.Company), ct)));
+
+        prospects.MapPost("/{id:guid}/lose", async (Guid id, LoseProspectRequest request, LoseProspectUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new LoseProspectCommand(new ProspectId(id), request.Reason), ct)));
+
+        var feedback = api.MapGroup("/feedback");
+
+        feedback.MapPost("/", async (SubmitFeedbackCommand command, SubmitFeedbackUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(command, ct), id => Results.Created($"/api/feedback/{id.Value}", new { id = id.Value })));
+
+        feedback.MapGet("/", async (Guid? productId, FeedbackStatus? status, FeedbackCategory? category, GetFeedbackInboxUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new GetFeedbackInboxQuery(productId, status, category), ct), inbox => Results.Ok(new
+            {
+                items = inbox.Items.Select(f => new
+                {
+                    id = f.Id.Value,
+                    productId = f.ProductId.Value,
+                    category = f.Category.ToString(),
+                    f.Message,
+                    reporterEmail = f.ReporterEmail?.Value,
+                    f.SourceApp,
+                    status = f.Status.ToString(),
+                    f.ReceivedAt,
+                }),
+                counts = new
+                {
+                    inbox.Counts.New,
+                    inbox.Counts.Triaged,
+                    inbox.Counts.Resolved,
+                    inbox.Counts.Dismissed,
+                    inbox.Counts.Total,
+                },
+            })));
+
+        feedback.MapPost("/{id:guid}/triage", async (Guid id, TriageFeedbackUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new TriageFeedbackCommand(new FeedbackId(id)), ct)));
+
+        feedback.MapPost("/{id:guid}/resolve", async (Guid id, ResolveFeedbackUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new ResolveFeedbackCommand(new FeedbackId(id)), ct)));
+
+        feedback.MapPost("/{id:guid}/dismiss", async (Guid id, DismissFeedbackUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new DismissFeedbackCommand(new FeedbackId(id)), ct)));
 
         var traffic = api.MapGroup("/traffic");
 
@@ -181,6 +248,10 @@ public static class CrmEndpoints
     private sealed record UpdateProductRequest(string Name, string? Description);
 
     private sealed record TrackRepositoryRequest(string Repository);
+
+    private sealed record UpdateProspectRequest(decimal? EstimatedValue, string? EstimatedValueCurrency, string? Company);
+
+    private sealed record LoseProspectRequest(string Reason);
 
     private static IResult ToHttp(Result result) =>
         result.IsSuccess ? Results.NoContent() : ToProblem(result.Error!);

@@ -14,7 +14,7 @@ public sealed class AdvanceProspectStageUseCaseTests
     [Fact]
     public async Task Should_AdvanceStage_When_ProspectExists()
     {
-        var prospect = Prospect.Create(ProductId.New(), null, "Ada", Email.Create("ada@example.com").Value!, null, Now).Value!;
+        var prospect = Prospect.Create(ProductId.New(), null, "Ada", Email.Create("ada@example.com").Value!, null, null, Now).Value!;
         _repository.Items.Add(prospect);
         var useCase = new AdvanceProspectStageUseCase(_repository);
 
@@ -29,7 +29,7 @@ public sealed class AdvanceProspectStageUseCaseTests
     [Fact]
     public async Task Should_Fail_When_TransitionIsInvalid()
     {
-        var prospect = Prospect.Create(ProductId.New(), null, "Ada", Email.Create("ada@example.com").Value!, null, Now).Value!;
+        var prospect = Prospect.Create(ProductId.New(), null, "Ada", Email.Create("ada@example.com").Value!, null, null, Now).Value!;
         prospect.Advance(ProspectStage.Qualified);
         _repository.Items.Add(prospect);
         var useCase = new AdvanceProspectStageUseCase(_repository);

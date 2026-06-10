@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.ApiMetrics;
+using Outlet.Crm.Domain.Feedback;
 using Outlet.Crm.Domain.Organizations;
 using Outlet.Crm.Domain.Payments;
 using Outlet.Crm.Domain.Products;
@@ -27,6 +28,8 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options) : DbCon
     public DbSet<TrafficSample> TrafficSamples => Set<TrafficSample>();
 
     public DbSet<Payment> Payments => Set<Payment>();
+
+    public DbSet<Feedback> FeedbackItems => Set<Feedback>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrmDbContext).Assembly);

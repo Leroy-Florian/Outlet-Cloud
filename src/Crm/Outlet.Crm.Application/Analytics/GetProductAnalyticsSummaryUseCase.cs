@@ -5,11 +5,12 @@ using Outlet.Kernel.Shared;
 
 namespace Outlet.Crm.Application.Analytics;
 
-public sealed record GetProductAnalyticsSummaryQuery(Guid ProductId);
+public sealed record GetProductAnalyticsSummaryQuery(Guid ProductId, int? Days = null);
 
 /// <summary>
-/// Dashboard summary: latest cumulative totals per package/repository plus
-/// downloads and page views over the trailing 7 and 30 days.
+/// Dashboard summary: latest cumulative totals per package/repository, downloads
+/// and page views over the trailing 7 and 30 days, plus the current-vs-previous
+/// period comparison over the requested window (default 30 days, clamped to [1, 365]).
 /// </summary>
 public sealed class GetProductAnalyticsSummaryUseCase(
     IProductRepository products,
@@ -30,11 +31,14 @@ public sealed class GetProductAnalyticsSummaryUseCase(
         }
 
         var today = clock.Today;
+        var periodDays = AnalyticsPeriod.Resolve(command.Days);
         var downloads = await downloadSnapshots.ListByProductAsync(productId, cancellationToken);
         var repositories = await repositorySnapshots.ListByProductAsync(productId, cancellationToken);
         var samples = await traffic.ListSinceAsync(
-            productId, today.AddDays(-29).ToDateTime(TimeOnly.MinValue), cancellationToken);
+            productId,
+            today.AddDays(-(Math.Max(30, periodDays * 2) - 1)).ToDateTime(TimeOnly.MinValue),
+            cancellationToken);
 
-        return Result.Success(ProductAnalyticsSummaryCalculator.Compute(downloads, repositories, samples, today));
+        return Result.Success(ProductAnalyticsSummaryCalculator.Compute(downloads, repositories, samples, today, periodDays));
     }
 }

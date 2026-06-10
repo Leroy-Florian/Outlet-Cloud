@@ -1,5 +1,6 @@
 using Outlet.Crm.Application.Analytics;
 using Outlet.Crm.Application.ApiMetrics;
+using Outlet.Crm.Application.Feedback;
 using Outlet.Crm.Application.Organizations;
 using Outlet.Crm.Application.Payments;
 using Outlet.Crm.Application.Products;
@@ -42,6 +43,15 @@ public static class CrmWebServiceCollectionExtensions
         services.AddScoped<GetDailyTrafficUseCase>();
         services.AddScoped<RecordPaymentUseCase>();
         services.AddScoped<SettlePaymentUseCase>();
+        services.AddScoped<GetPortfolioUseCase>();
+        services.AddScoped<UpdateProspectUseCase>();
+        services.AddScoped<LoseProspectUseCase>();
+        services.AddScoped<GetProspectPipelineStatsUseCase>();
+        services.AddScoped<SubmitFeedbackUseCase>();
+        services.AddScoped<TriageFeedbackUseCase>();
+        services.AddScoped<ResolveFeedbackUseCase>();
+        services.AddScoped<DismissFeedbackUseCase>();
+        services.AddScoped<GetFeedbackInboxUseCase>();
 
         return services;
     }

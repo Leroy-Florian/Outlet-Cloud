@@ -1,5 +1,7 @@
+using System.Globalization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Outlet.Crm.Domain.Payments;
 using Outlet.Crm.Domain.Prospects;
 
 namespace Outlet.Crm.Infrastructure.Persistence.Configurations;
@@ -18,6 +20,7 @@ public sealed class ProspectConfiguration : IEntityTypeConfiguration<Prospect>
         builder.Property(p => p.Name).HasMaxLength(200);
         builder.Property(p => p.Company).HasMaxLength(200);
         builder.Property(p => p.Stage).HasConversion<string>().HasMaxLength(20);
+        builder.Property(p => p.LossReason).HasMaxLength(500);
         builder.Property(p => p.CreatedAt);
         // Value conversion (not ComplexProperty): EF cannot bind complex types to
         // constructor parameters when materializing immutable aggregates.
@@ -25,6 +28,14 @@ public sealed class ProspectConfiguration : IEntityTypeConfiguration<Prospect>
             .HasConversion(e => e.Value, value => Email.Create(value).Value!)
             .HasColumnName("email")
             .HasMaxLength(320);
+
+        // Same single-column money storage as payments ("49.99 EUR"), nullable here.
+        builder.Property(p => p.EstimatedValue)
+            .HasConversion<string?>(
+                m => m == null ? null : m.Amount.ToString(CultureInfo.InvariantCulture) + " " + m.Currency,
+                value => value == null ? null : ParseMoney(value))
+            .HasColumnName("estimated_value")
+            .HasMaxLength(32);
 
         builder.OwnsMany(p => p.Interactions, interactions =>
         {
@@ -38,5 +49,13 @@ public sealed class ProspectConfiguration : IEntityTypeConfiguration<Prospect>
         });
 
         builder.Ignore(p => p.DomainEvents);
+    }
+
+    private static Money ParseMoney(string value)
+    {
+        var separator = value.LastIndexOf(' ');
+        return Money.Create(
+            decimal.Parse(value[..separator], CultureInfo.InvariantCulture),
+            value[(separator + 1)..]).Value!;
     }
 }

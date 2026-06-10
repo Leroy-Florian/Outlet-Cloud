@@ -24,7 +24,7 @@ public sealed class ProductAnalyticsSummaryTests
     [Fact]
     public void Should_ReturnZeros_When_NoData()
     {
-        var summary = ProductAnalyticsSummaryCalculator.Compute([], [], [], Today);
+        var summary = ProductAnalyticsSummaryCalculator.Compute([], [], [], Today, 30);
 
         summary.TotalDownloads.Should().Be(0);
         summary.DownloadsLast7Days.Should().Be(0);
@@ -43,7 +43,7 @@ public sealed class ProductAnalyticsSummaryTests
             Download("outlet.cli", 100, TodayNoon.AddDays(-1)),
             Download("outlet.cli", 150, TodayNoon),
             Download("alpha", 10, TodayNoon.AddDays(-2), PackageRegistry.Npm),
-        ], [], [], Today);
+        ], [], [], Today, 30);
 
         summary.Packages.Should().HaveCount(2);
         summary.Packages.Select(p => (p.Registry, p.PackageId, p.TotalDownloads)).Should().Equal(
@@ -64,7 +64,7 @@ public sealed class ProductAnalyticsSummaryTests
             Download("outlet.cli", 135, TodayNoon.AddDays(-7)),
             Download("outlet.cli", 175, TodayNoon.AddDays(-6)),
             Download("outlet.cli", 255, TodayNoon),
-        ], [], [], Today);
+        ], [], [], Today, 30);
 
         summary.DownloadsLast7Days.Should().Be(120);
         summary.DownloadsLast30Days.Should().Be(150);
@@ -81,7 +81,7 @@ public sealed class ProductAnalyticsSummaryTests
                 Repo("o/a", 1, 2, 0, TodayNoon.AddDays(-3)),
             ],
             [],
-            Today);
+            Today, 30);
 
         summary.Repositories.Select(r => (r.Repository, r.Stars, r.OpenIssues, r.Forks)).Should().Equal(
             ("o/a", 2, 1, 0),
@@ -101,7 +101,7 @@ public sealed class ProductAnalyticsSummaryTests
                 View(TodayNoon.AddDays(-6)),
                 View(TodayNoon),
             ],
-            Today);
+            Today, 30);
 
         summary.PageViewsLast7Days.Should().Be(2);
         summary.PageViewsLast30Days.Should().Be(4);

@@ -55,4 +55,13 @@ public sealed class StartTrialUseCaseTests
 
         result.IsFailure.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Should_Fail_When_AccountIdIsEmpty()
+    {
+        var result = await NewUseCase().HandleAsync(new StartTrialCommand(Guid.Empty, "dev@acme.test", 14));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Account id is invalid.");
+    }
 }

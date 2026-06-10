@@ -104,4 +104,63 @@ public sealed class OrganizationTests
 
         result.IsFailure.Should().BeTrue();
     }
+
+    [Fact]
+    public void Should_SucceedWithoutNewEvent_When_ChangingToTheSameRole()
+    {
+        var org = NewOrg();
+        org.AddMember(Other, OrganizationRole.Member);
+        var eventCount = org.DomainEvents.Count;
+
+        var result = org.ChangeRole(Other, OrganizationRole.Member);
+
+        result.IsSuccess.Should().BeTrue();
+        org.DomainEvents.Should().HaveCount(eventCount);
+    }
+
+    [Fact]
+    public void Should_Fail_When_RemovingANonMember()
+    {
+        var org = NewOrg();
+
+        var result = org.RemoveMember(Other);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be($"User '{Other}' is not a member of this organization.");
+    }
+
+    [Fact]
+    public void Should_CarryMemberDetails_When_MemberAddedEventIsRaised()
+    {
+        var org = NewOrg();
+
+        org.AddMember(Other, OrganizationRole.Admin);
+
+        var raised = org.DomainEvents.OfType<MemberAddedEvent>().Single();
+        raised.OrganizationId.Should().Be(AnyId);
+        raised.UserId.Should().Be(Other);
+        raised.Role.Should().Be(OrganizationRole.Admin);
+    }
+
+    [Fact]
+    public void Should_CarryNewRole_When_MemberRoleChangedEventIsRaised()
+    {
+        var org = NewOrg();
+        org.AddMember(Other, OrganizationRole.Member);
+
+        org.ChangeRole(Other, OrganizationRole.Admin);
+
+        var raised = org.DomainEvents.OfType<MemberRoleChangedEvent>().Single();
+        raised.OrganizationId.Should().Be(AnyId);
+        raised.UserId.Should().Be(Other);
+        raised.Role.Should().Be(OrganizationRole.Admin);
+    }
+
+    [Fact]
+    public void Should_ExposeFirstOwnerAsOwnerId_When_Created()
+    {
+        var org = NewOrg();
+
+        org.OwnerId.Should().Be(Owner);
+    }
 }

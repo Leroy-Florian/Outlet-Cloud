@@ -52,4 +52,34 @@ public sealed class CreateOrganizationUseCaseTests
 
         result.IsFailure.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Should_Fail_When_OrganizationIdIsEmpty()
+    {
+        var result = await NewUseCase().HandleAsync(
+            new CreateOrganizationCommand(Guid.Empty, "acme", "Acme Corp", Guid.NewGuid()));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Organization id is invalid.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_NameIsBlank()
+    {
+        var result = await NewUseCase().HandleAsync(
+            new CreateOrganizationCommand(Guid.NewGuid(), "acme", "  ", Guid.NewGuid()));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Organization name is invalid.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_OwnerUserIdIsEmpty()
+    {
+        var result = await NewUseCase().HandleAsync(
+            new CreateOrganizationCommand(Guid.NewGuid(), "acme", "Acme Corp", Guid.Empty));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Owner user id is invalid.");
+    }
 }

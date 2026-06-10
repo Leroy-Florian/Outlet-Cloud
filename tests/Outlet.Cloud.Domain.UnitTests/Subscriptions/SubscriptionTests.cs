@@ -145,4 +145,93 @@ public sealed class SubscriptionTests
 
         subscription.TrialDaysRemainingAsOf(Day0.AddDays(5)).Should().Be(9);
     }
+
+    [Fact]
+    public void Should_StayActiveWithoutNewEvent_When_ConvertingAnAlreadyActiveSubscription()
+    {
+        var subscription = NewTrial();
+        subscription.Convert(PlanTier.Pro);
+        var eventCount = subscription.DomainEvents.Count;
+
+        var result = subscription.Convert(PlanTier.Pro);
+
+        result.IsSuccess.Should().BeTrue();
+        subscription.Status.Should().Be(SubscriptionStatus.Active);
+        subscription.DomainEvents.Should().HaveCount(eventCount);
+    }
+
+    [Fact]
+    public void Should_Fail_When_ConvertingASuspendedSubscription()
+    {
+        var subscription = NewTrial(days: 1);
+        subscription.ExpireTrial(Day0.AddDays(1));
+
+        var result = subscription.Convert(PlanTier.Pro);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a trialing subscription can be converted.");
+        subscription.Status.Should().Be(SubscriptionStatus.Suspended);
+    }
+
+    [Fact]
+    public void Should_Fail_When_ExpiringANonTrialingSubscription()
+    {
+        var subscription = NewTrial();
+        subscription.Convert(PlanTier.Pro);
+
+        var result = subscription.ExpireTrial(Day0.AddDays(30));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a trialing subscription can expire into suspension.");
+        subscription.Status.Should().Be(SubscriptionStatus.Active);
+    }
+
+    [Fact]
+    public void Should_StaySuspendedWithoutNewEvent_When_CancellingAnAlreadySuspendedSubscription()
+    {
+        var subscription = NewTrial(days: 1);
+        subscription.ExpireTrial(Day0.AddDays(1));
+        var eventCount = subscription.DomainEvents.Count;
+
+        var result = subscription.Cancel();
+
+        result.IsSuccess.Should().BeTrue();
+        subscription.Status.Should().Be(SubscriptionStatus.Suspended);
+        subscription.DomainEvents.Should().HaveCount(eventCount);
+    }
+
+    [Fact]
+    public void Should_Fail_When_PurgingANonSuspendedSubscription()
+    {
+        var subscription = NewTrial();
+
+        var result = subscription.Purge();
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a suspended subscription can be purged.");
+        subscription.Status.Should().Be(SubscriptionStatus.Trialing);
+    }
+
+    [Fact]
+    public void Should_ReportZeroTrialDaysRemaining_When_NotTrialing()
+    {
+        var subscription = NewTrial();
+        subscription.Convert(PlanTier.Pro);
+
+        subscription.TrialDaysRemainingAsOf(Day0).Should().Be(0);
+    }
+
+    [Fact]
+    public void Should_RehydrateWithoutEvents_When_RestoredFromPersistence()
+    {
+        var trial = TrialPeriod.Of(Day0, 14);
+
+        var subscription = Subscription.Restore(AnyId, AnyAccount, PlanTier.Pro, SubscriptionStatus.Suspended, trial);
+
+        subscription.Status.Should().Be(SubscriptionStatus.Suspended);
+        subscription.Plan.Should().Be(PlanTier.Pro);
+        subscription.AccountId.Should().Be(AnyAccount);
+        subscription.Trial.Should().Be(trial);
+        subscription.DomainEvents.Should().BeEmpty();
+    }
 }

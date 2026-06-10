@@ -106,4 +106,99 @@ public sealed class EntitlementFlowTests
 
         result.IsFailure.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Should_Fail_When_ConvertingWithAnEmptyAccountId()
+    {
+        var useCase = new ConvertSubscriptionUseCase(new FakeSubscriptionRepository());
+
+        var result = await useCase.HandleAsync(new ConvertSubscriptionCommand(Guid.Empty));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Account id is invalid.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_ConvertingASuspendedSubscription()
+    {
+        var subscriptions = new FakeSubscriptionRepository();
+        var sub = Trial(days: 1);
+        sub.ExpireTrial(Day0.AddDays(1));
+        subscriptions.Seed(sub);
+        var useCase = new ConvertSubscriptionUseCase(subscriptions);
+
+        var result = await useCase.HandleAsync(new ConvertSubscriptionCommand(Account));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only a trialing subscription can be converted.");
+        subscriptions.UpdateCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_CancellingWithAnEmptyAccountId()
+    {
+        var useCase = new CancelSubscriptionUseCase(new FakeSubscriptionRepository());
+
+        var result = await useCase.HandleAsync(new CancelSubscriptionCommand(Guid.Empty));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Account id is invalid.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_CancellingWithoutSubscription()
+    {
+        var useCase = new CancelSubscriptionUseCase(new FakeSubscriptionRepository());
+
+        var result = await useCase.HandleAsync(new CancelSubscriptionCommand(Account));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("This account has no subscription to cancel.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_CancellingATrialingSubscription()
+    {
+        var subscriptions = new FakeSubscriptionRepository();
+        subscriptions.Seed(Trial());
+        var useCase = new CancelSubscriptionUseCase(subscriptions);
+
+        var result = await useCase.HandleAsync(new CancelSubscriptionCommand(Account));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Only an active subscription can be cancelled.");
+        subscriptions.UpdateCount.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_GettingEntitlementsWithAnEmptyAccountId()
+    {
+        var subscriptions = new FakeSubscriptionRepository();
+        var clock = new FixedClock(Day0);
+        var useCase = new GetEntitlementsUseCase(subscriptions, new SubscriptionEntitlementResolver(subscriptions, clock), clock);
+
+        var result = await useCase.HandleAsync(new GetEntitlementsQuery(Guid.Empty));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Account id is invalid.");
+    }
+
+    [Fact]
+    public async Task Should_ReportNoSubscriptionWithNoEntitlements_When_AccountIsUnknown()
+    {
+        var subscriptions = new FakeSubscriptionRepository();
+        var clock = new FixedClock(Day0);
+        var useCase = new GetEntitlementsUseCase(subscriptions, new SubscriptionEntitlementResolver(subscriptions, clock), clock);
+
+        var result = await useCase.HandleAsync(new GetEntitlementsQuery(Account));
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.HasSubscription.Should().BeFalse();
+        result.Value.Status.Should().Be(nameof(SubscriptionStatus.Expired));
+        result.Value.TrialDaysRemaining.Should().Be(0);
+        result.Value.CanPublishPrivateItems.Should().BeFalse();
+        result.Value.CanReadPrivateRegistry.Should().BeFalse();
+        result.Value.MaxPrivateItems.Should().Be(0);
+        result.Value.Analytics.Should().BeFalse();
+    }
 }

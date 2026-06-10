@@ -111,4 +111,55 @@ public sealed class PublishItemUseCaseTests
 
         result.IsFailure.Should().BeTrue();
     }
+
+    [Fact]
+    public async Task Should_Fail_When_OrganizationIdIsEmpty()
+    {
+        var result = await NewUseCase().HandleAsync(new PublishItemCommand(
+            Guid.Empty, "email-smtp", "{}", [new PublishedFileInput("a.cs", "x")]));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be("Organization id is invalid.");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_AFilePathIsBlank()
+    {
+        var result = await NewUseCase().HandleAsync(new PublishItemCommand(
+            _orgId, "email-smtp", "{}", [new PublishedFileInput("  ", "content")]));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain("invalid");
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_PrivateItemQuotaIsReached()
+    {
+        var quota = Entitlements.For(PlanTier.Pro).MaxPrivateItems;
+        for (var i = 0; i < quota; i++)
+            await _items.UpsertAsync(PublishedItem.Restore(
+                PublishedItemId.From(Guid.NewGuid()), OrganizationId.From(_orgId),
+                RegistryItemName.From($"item-{i}"), "{}", [PublishedFile.From("a.cs", "x")]));
+
+        var result = await NewUseCase().HandleAsync(new PublishItemCommand(
+            _orgId, "one-too-many", "{}", [new PublishedFileInput("a.cs", "x")]));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Contain($"limit reached ({quota})");
+    }
+
+    [Fact]
+    public async Task Should_AllowRepublish_When_QuotaIsAlreadyFull()
+    {
+        var quota = Entitlements.For(PlanTier.Pro).MaxPrivateItems;
+        for (var i = 0; i < quota; i++)
+            await _items.UpsertAsync(PublishedItem.Restore(
+                PublishedItemId.From(Guid.NewGuid()), OrganizationId.From(_orgId),
+                RegistryItemName.From($"item-{i}"), "{}", [PublishedFile.From("a.cs", "x")]));
+
+        var result = await NewUseCase().HandleAsync(new PublishItemCommand(
+            _orgId, "item-0", "{\"v\":2}", [new PublishedFileInput("a.cs", "v2")]));
+
+        result.IsSuccess.Should().BeTrue();
+    }
 }

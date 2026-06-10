@@ -14,17 +14,24 @@ public sealed class BoundedContextIsolationTests : ArchitectureTestBase
 {
     private static readonly Assembly[] IdentityContext = [IdentityDomainAssembly, IdentityApplicationAssembly, IdentityInfrastructureAssembly];
     private static readonly Assembly[] CloudContext = [CloudDomainAssembly, CloudApplicationAssembly, CloudInfrastructureAssembly];
+    private static readonly Assembly[] CrmContext = [CrmDomainAssembly, CrmApplicationAssembly, CrmInfrastructureAssembly];
 
     [Fact]
     public void Identity_ShouldNot_DependOn_OtherContexts()
     {
-        AssertNoDependency(IdentityContext, CloudContext, "Identity", "Cloud");
+        AssertNoDependency(IdentityContext, [.. CloudContext, .. CrmContext], "Identity", "Cloud/Crm");
     }
 
     [Fact]
     public void Cloud_ShouldNot_DependOn_OtherContexts()
     {
-        AssertNoDependency(CloudContext, IdentityContext, "Cloud", "Identity");
+        AssertNoDependency(CloudContext, [.. IdentityContext, .. CrmContext], "Cloud", "Identity/Crm");
+    }
+
+    [Fact]
+    public void Crm_ShouldNot_DependOn_OtherContexts()
+    {
+        AssertNoDependency(CrmContext, [.. IdentityContext, .. CloudContext], "Crm", "Identity/Cloud");
     }
 
     private static void AssertNoDependency(Assembly[] context, Assembly[] forbidden, string contextName, string forbiddenName)

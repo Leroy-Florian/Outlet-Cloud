@@ -24,6 +24,9 @@
     <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Domain\Outlet.Cloud.Domain.csproj" />
     <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Application\Outlet.Cloud.Application.csproj" />
     <ProjectReference Include="..\..\src\Cloud\Outlet.Cloud.Infrastructure\Outlet.Cloud.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Crm\Outlet.Crm.Domain\Outlet.Crm.Domain.csproj" />
+    <ProjectReference Include="..\..\src\Crm\Outlet.Crm.Application\Outlet.Crm.Application.csproj" />
+    <ProjectReference Include="..\..\src\Crm\Outlet.Crm.Infrastructure\Outlet.Crm.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\Kernel.Shared\Outlet.Kernel.Shared\Outlet.Kernel.Shared.csproj" />
   </ItemGroup>
 

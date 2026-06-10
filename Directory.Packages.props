@@ -25,6 +25,8 @@
     <PackageVersion Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.8" />
     <!-- Design-time only: `dotnet ef migrations` (PrivateAssets=all in the csproj). -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8" />
+    <!-- Typed HttpClient factory for the Crm context's package/repo stats adapters (NuGet, npm, GitHub). -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.8" />
   </ItemGroup>
 
   <ItemGroup Label="Registry Item Provider Dependencies">

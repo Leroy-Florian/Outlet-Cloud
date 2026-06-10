@@ -7,9 +7,10 @@ namespace Outlet.ArchitectureTests;
 public abstract class ArchitectureTestBase
 {
     // ==========================================================================
-    // Outlet Cloud spans two bounded contexts:
+    // Outlet Cloud spans three bounded contexts:
     //   - identity / access (Outlet.Identity.*) — users + personal access tokens,
-    //   - cloud (Outlet.Cloud.*) — organizations, memberships, subscriptions.
+    //   - cloud (Outlet.Cloud.*) — organizations, memberships, subscriptions,
+    //   - crm (Outlet.Crm.*) — prospects, payments, products, metrics.
     // The convention gates below run across every context's Domain assembly via
     // AllDomainAssemblies; BoundedContextIsolationTests keeps the contexts decoupled.
     // (The registry/install engine — Outlet.Core.* — lives in the public CLI repo.)
@@ -36,9 +37,18 @@ public abstract class ArchitectureTestBase
     protected static readonly Assembly CloudInfrastructureAssembly =
         typeof(Outlet.Cloud.Infrastructure.AssemblyReference).Assembly;
 
-    protected static readonly Assembly[] AllDomainAssemblies = [IdentityDomainAssembly, CloudDomainAssembly];
-    protected static readonly Assembly[] AllApplicationAssemblies = [IdentityApplicationAssembly, CloudApplicationAssembly];
-    protected static readonly Assembly[] AllInfrastructureAssemblies = [IdentityInfrastructureAssembly, CloudInfrastructureAssembly];
+    protected static readonly Assembly CrmDomainAssembly =
+        typeof(Outlet.Crm.Domain.AssemblyReference).Assembly;
+
+    protected static readonly Assembly CrmApplicationAssembly =
+        typeof(Outlet.Crm.Application.AssemblyReference).Assembly;
+
+    protected static readonly Assembly CrmInfrastructureAssembly =
+        typeof(Outlet.Crm.Infrastructure.AssemblyReference).Assembly;
+
+    protected static readonly Assembly[] AllDomainAssemblies = [IdentityDomainAssembly, CloudDomainAssembly, CrmDomainAssembly];
+    protected static readonly Assembly[] AllApplicationAssemblies = [IdentityApplicationAssembly, CloudApplicationAssembly, CrmApplicationAssembly];
+    protected static readonly Assembly[] AllInfrastructureAssemblies = [IdentityInfrastructureAssembly, CloudInfrastructureAssembly, CrmInfrastructureAssembly];
 
     #region Given - Assembly Selection
 

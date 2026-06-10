@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\Crm\Outlet.Crm.Application\Outlet.Crm.Application.csproj" />
+    <ProjectReference Include="..\..\Crm\Outlet.Crm.Domain\Outlet.Crm.Domain.csproj" />
+    <ProjectReference Include="..\..\Crm\Outlet.Crm.Infrastructure\Outlet.Crm.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\Kernel.Shared\Outlet.Kernel.Shared\Outlet.Kernel.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- SQLite lets the host run standalone for local demos (no PostgreSQL needed). -->
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
+  </ItemGroup>
+
+</Project>

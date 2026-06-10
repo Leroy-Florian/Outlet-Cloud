@@ -12,8 +12,14 @@
     <Project Path="src/Cloud/Outlet.Cloud.Application/Outlet.Cloud.Application.csproj" />
     <Project Path="src/Cloud/Outlet.Cloud.Infrastructure/Outlet.Cloud.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Crm/">
+    <Project Path="src/Crm/Outlet.Crm.Domain/Outlet.Crm.Domain.csproj" />
+    <Project Path="src/Crm/Outlet.Crm.Application/Outlet.Crm.Application.csproj" />
+    <Project Path="src/Crm/Outlet.Crm.Infrastructure/Outlet.Crm.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Hosts/">
     <Project Path="src/Hosts/Outlet.Cloud.Web/Outlet.Cloud.Web.csproj" />
+    <Project Path="src/Hosts/Outlet.Crm.Web/Outlet.Crm.Web.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Outlet.Kernel.Shared.UnitTests/Outlet.Kernel.Shared.UnitTests.csproj" />
@@ -24,6 +30,8 @@
     <Project Path="tests/Outlet.Cloud.Application.UnitTests/Outlet.Cloud.Application.UnitTests.csproj" />
     <Project Path="tests/Outlet.Cloud.Infrastructure.UnitTests/Outlet.Cloud.Infrastructure.UnitTests.csproj" />
     <Project Path="tests/Outlet.Cloud.Web.IntegrationTests/Outlet.Cloud.Web.IntegrationTests.csproj" />
+    <Project Path="tests/Outlet.Crm.Domain.UnitTests/Outlet.Crm.Domain.UnitTests.csproj" />
+    <Project Path="tests/Outlet.Crm.Application.UnitTests/Outlet.Crm.Application.UnitTests.csproj" />
     <Project Path="tests/Outlet.ArchitectureTests/Outlet.ArchitectureTests.csproj" />
   </Folder>
 </Solution>

@@ -17,6 +17,21 @@ public sealed class PaymentTests
     }
 
     [Fact]
+    public void Should_NotBeRecurring_When_CreatedWithoutTheFlag()
+    {
+        CreatePayment().IsRecurring.Should().BeFalse();
+    }
+
+    [Fact]
+    public void Should_BeRecurring_When_CreatedWithTheFlag()
+    {
+        var payment = Payment.Create(
+            ProductId.New(), null, Money.Create(9.99m, "EUR").Value!, "stripe", "sub_1", Now, isRecurring: true).Value!;
+
+        payment.IsRecurring.Should().BeTrue();
+    }
+
+    [Fact]
     public void Should_Fail_When_SourceIsBlank()
     {
         var result = Payment.Create(ProductId.New(), null, Money.Create(1m, "EUR").Value!, " ", "ref", Now);

@@ -30,6 +30,7 @@ public sealed class PaymentConfiguration : IEntityTypeConfiguration<Payment>
             .HasColumnName("amount")
             .HasMaxLength(32);
 
+        builder.Property(p => p.IsRecurring);
         builder.Property(p => p.CreatedAt);
         builder.Ignore(p => p.DomainEvents);
     }

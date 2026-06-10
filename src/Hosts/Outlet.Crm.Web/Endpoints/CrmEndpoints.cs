@@ -1,3 +1,4 @@
+using Outlet.Crm.Application.Alerts;
 using Outlet.Crm.Application.Analytics;
 using Outlet.Crm.Application.ApiMetrics;
 using Outlet.Crm.Application.Feedback;
@@ -7,6 +8,7 @@ using Outlet.Crm.Application.Products;
 using Outlet.Crm.Application.Ports;
 using Outlet.Crm.Application.Prospects;
 using Outlet.Crm.Application.Traffic;
+using Outlet.Crm.Domain.Alerts;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.Feedback;
 using Outlet.Crm.Domain.Prospects;
@@ -232,6 +234,7 @@ public static class CrmEndpoints
                 currency = p.Amount.Currency,
                 p.Source,
                 p.ExternalReference,
+                p.IsRecurring,
                 status = p.Status.ToString(),
                 p.CreatedAt,
             })));
@@ -241,7 +244,48 @@ public static class CrmEndpoints
 
         payments.MapPost("/{id:guid}/settle", async (Guid id, SettlePaymentUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new SettlePaymentCommand(id), ct)));
+
+        api.MapGet("/revenue/metrics", async (int? months, GetRevenueMetricsUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new GetRevenueMetricsQuery(months), ct), report => Results.Ok(new
+            {
+                report.PrimaryCurrency,
+                report.Months,
+                mrr = report.MonthlyRecurringRevenue,
+                report.ChurnMonths,
+                series = report.Series.Select(point => new
+                {
+                    month = $"{point.Year:D4}-{point.Month:D2}",
+                    point.Total,
+                    point.Recurring,
+                    point.Cumulative,
+                    byProduct = point.ByProduct.Select(p => new { productId = p.ProductId, p.Amount }),
+                }),
+                currencyTotals = report.CurrencyTotals.Select(c => new { c.Currency, c.Total }),
+            })));
+
+        var alerts = api.MapGroup("/alerts");
+
+        alerts.MapGet("/", async (Guid? productId, bool? acknowledged, GetAlertsUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new GetAlertsQuery(productId, acknowledged), ct), items =>
+                Results.Ok(items.Select(ToAlertResponse))));
+
+        alerts.MapPost("/{id:guid}/acknowledge", async (Guid id, AcknowledgeAlertUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new AcknowledgeAlertCommand(new AlertId(id)), ct)));
+
+        products.MapPost("/{productId:guid}/alerts/evaluate", async (Guid productId, EvaluateAlertsUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new EvaluateAlertsCommand(productId), ct), created =>
+                Results.Ok(created.Select(ToAlertResponse))));
     }
+
+    private static object ToAlertResponse(Alert alert) => new
+    {
+        id = alert.Id.Value,
+        productId = alert.ProductId.Value,
+        type = alert.Type.ToString(),
+        alert.Message,
+        alert.TriggeredAt,
+        alert.Acknowledged,
+    };
 
     private sealed record TrackPackageRequest(PackageRegistry Registry, string PackageId);
 

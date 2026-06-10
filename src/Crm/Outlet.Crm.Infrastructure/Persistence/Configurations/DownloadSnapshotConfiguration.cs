@@ -20,6 +20,7 @@ public sealed class DownloadSnapshotConfiguration : IEntityTypeConfiguration<Dow
             .HasColumnName("package_id")
             .HasMaxLength(100);
         builder.Property(s => s.TotalDownloads);
+        builder.Property(s => s.LatestVersion).HasMaxLength(64);
         builder.Property(s => s.CapturedAt);
         builder.Ignore(s => s.DomainEvents);
     }

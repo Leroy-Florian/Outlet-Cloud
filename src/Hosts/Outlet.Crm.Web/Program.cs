@@ -31,12 +31,15 @@ else
 builder.Services.AddOutletCrmStatsClients(new CrmStatsOptions
 {
     NuGetSearchBaseUrl = builder.Configuration["NuGet:SearchBaseUrl"] ?? "https://azuresearch-usnc.nuget.org/",
+    NuGetFlatContainerBaseUrl = builder.Configuration["NuGet:FlatContainerBaseUrl"] ?? "https://api.nuget.org/v3-flatcontainer/",
+    NpmRegistryBaseUrl = builder.Configuration["Npm:RegistryBaseUrl"] ?? "https://registry.npmjs.org/",
     NpmApiBaseUrl = builder.Configuration["Npm:ApiBaseUrl"] ?? "https://api.npmjs.org/",
     GitHubApiBaseUrl = builder.Configuration["GitHub:ApiBaseUrl"] ?? "https://api.github.com/",
     GitHubToken = builder.Configuration["GitHub:Token"],
 });
 
 builder.Services.AddOutletCrmWeb();
+builder.Services.AddHostedService<Outlet.Crm.Web.Workers.SnapshotCaptureWorker>();
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.Converters.Add(new JsonStringEnumConverter()));
 

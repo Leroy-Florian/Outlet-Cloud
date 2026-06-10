@@ -9,10 +9,21 @@ public sealed class FakePackageStatsClient(Result<long> result) : IPackageStatsC
 {
     public List<(PackageRegistry Registry, string PackageId)> Calls { get; } = [];
 
+    public List<(PackageRegistry Registry, string PackageId)> VersionCalls { get; } = [];
+
+    public Result<PackageVersionInfo> VersionsResult { get; set; } =
+        Result.Failure<PackageVersionInfo>("PackageStats.NoVersions: not configured.");
+
     public Task<Result<long>> GetTotalDownloadsAsync(PackageRegistry registry, PackageId packageId, CancellationToken cancellationToken = default)
     {
         Calls.Add((registry, packageId.Value));
         return Task.FromResult(result);
+    }
+
+    public Task<Result<PackageVersionInfo>> GetVersionsAsync(PackageRegistry registry, PackageId packageId, CancellationToken cancellationToken = default)
+    {
+        VersionCalls.Add((registry, packageId.Value));
+        return Task.FromResult(VersionsResult);
     }
 }
 

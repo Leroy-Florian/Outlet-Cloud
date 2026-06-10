@@ -299,4 +299,52 @@ public sealed class ProductUseCaseTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().StartWith("Product.NotFound:");
     }
+
+    [Fact]
+    public async Task Should_StoreLatestVersionOnSnapshots_When_VersionLookupSucceeds()
+    {
+        var product = Product.Create("Accordent", null, Now).Value!;
+        product.TrackPackage(PackageRegistry.Npm, PackageId.Create("@accordent/core").Value!);
+        _products.Items.Add(product);
+
+        var downloads = new FakeDownloadSnapshotRepository();
+        var stats = new FakePackageStatsClient(Result.Success(500L))
+        {
+            VersionsResult = Result.Success(new PackageVersionInfo("2.0.0", null, 4)),
+        };
+        var useCase = new CaptureProductSnapshotsUseCase(
+            _products,
+            stats,
+            new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0))),
+            downloads,
+            new FakeRepositorySnapshotRepository(),
+            new FixedClock(Now));
+
+        var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        downloads.Items.Should().ContainSingle().Which.LatestVersion.Should().Be("2.0.0");
+    }
+
+    [Fact]
+    public async Task Should_StillCaptureSnapshot_When_VersionLookupFails()
+    {
+        var product = Product.Create("Accordent", null, Now).Value!;
+        product.TrackPackage(PackageRegistry.Npm, PackageId.Create("@accordent/core").Value!);
+        _products.Items.Add(product);
+
+        var downloads = new FakeDownloadSnapshotRepository();
+        var useCase = new CaptureProductSnapshotsUseCase(
+            _products,
+            new FakePackageStatsClient(Result.Success(500L)),
+            new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0))),
+            downloads,
+            new FakeRepositorySnapshotRepository(),
+            new FixedClock(Now));
+
+        var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        downloads.Items.Should().ContainSingle().Which.LatestVersion.Should().BeNull();
+    }
 }

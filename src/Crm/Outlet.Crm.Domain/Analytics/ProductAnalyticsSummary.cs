@@ -2,7 +2,7 @@ using Outlet.Crm.Domain.Traffic;
 
 namespace Outlet.Crm.Domain.Analytics;
 
-public sealed record PackageTotal(PackageRegistry Registry, string PackageId, long TotalDownloads, DateTime CapturedAt);
+public sealed record PackageTotal(PackageRegistry Registry, string PackageId, long TotalDownloads, string? LatestVersion, DateTime CapturedAt);
 
 public sealed record RepositoryTotal(string Repository, int Stars, int OpenIssues, int Forks, DateTime CapturedAt);
 
@@ -42,7 +42,7 @@ public static class ProductAnalyticsSummaryCalculator
             .Select(group =>
             {
                 var latest = group.OrderBy(s => s.CapturedAt).Last();
-                return new PackageTotal(latest.Registry, latest.PackageId.Value, latest.TotalDownloads, latest.CapturedAt);
+                return new PackageTotal(latest.Registry, latest.PackageId.Value, latest.TotalDownloads, latest.LatestVersion, latest.CapturedAt);
             })
             .OrderBy(p => p.Registry)
             .ThenBy(p => p.PackageId, StringComparer.Ordinal)];

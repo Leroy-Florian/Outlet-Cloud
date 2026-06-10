@@ -1,3 +1,4 @@
+using Outlet.Crm.Application.Alerts;
 using Outlet.Crm.Application.Analytics;
 using Outlet.Crm.Application.ApiMetrics;
 using Outlet.Crm.Application.Feedback;
@@ -52,6 +53,10 @@ public static class CrmWebServiceCollectionExtensions
         services.AddScoped<ResolveFeedbackUseCase>();
         services.AddScoped<DismissFeedbackUseCase>();
         services.AddScoped<GetFeedbackInboxUseCase>();
+        services.AddScoped<EvaluateAlertsUseCase>();
+        services.AddScoped<AcknowledgeAlertUseCase>();
+        services.AddScoped<GetAlertsUseCase>();
+        services.AddScoped<GetRevenueMetricsUseCase>();
 
         return services;
     }

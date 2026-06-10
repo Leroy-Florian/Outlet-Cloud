@@ -11,7 +11,9 @@ namespace Outlet.Crm.Infrastructure.DependencyInjection;
 public sealed record CrmStatsOptions
 {
     public string NuGetSearchBaseUrl { get; init; } = "https://azuresearch-usnc.nuget.org/";
+    public string NuGetFlatContainerBaseUrl { get; init; } = "https://api.nuget.org/v3-flatcontainer/";
     public string NpmApiBaseUrl { get; init; } = "https://api.npmjs.org/";
+    public string NpmRegistryBaseUrl { get; init; } = "https://registry.npmjs.org/";
     public string GitHubApiBaseUrl { get; init; } = "https://api.github.com/";
     public string? GitHubToken { get; init; }
 }
@@ -38,6 +40,7 @@ public static class CrmInfrastructureServiceCollectionExtensions
         services.AddScoped<IApiMetricRepository, EfApiMetricRepository>();
         services.AddScoped<ITrafficSampleRepository, EfTrafficSampleRepository>();
         services.AddScoped<IFeedbackRepository, EfFeedbackRepository>();
+        services.AddScoped<IAlertRepository, EfAlertRepository>();
 
         return services;
     }
@@ -54,6 +57,10 @@ public static class CrmInfrastructureServiceCollectionExtensions
             client.BaseAddress = new Uri(options.NuGetSearchBaseUrl));
         services.AddHttpClient<NpmStatsHttpClient>(client =>
             client.BaseAddress = new Uri(options.NpmApiBaseUrl));
+        services.AddHttpClient<NuGetFlatContainerHttpClient>(client =>
+            client.BaseAddress = new Uri(options.NuGetFlatContainerBaseUrl));
+        services.AddHttpClient<NpmRegistryHttpClient>(client =>
+            client.BaseAddress = new Uri(options.NpmRegistryBaseUrl));
         services.AddHttpClient<GitHubStatsHttpClient>(client =>
         {
             client.BaseAddress = new Uri(options.GitHubApiBaseUrl);

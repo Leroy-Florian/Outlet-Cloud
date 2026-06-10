@@ -18,6 +18,7 @@ public sealed class Payment : AggregateRoot<Guid>
         Money amount,
         string source,
         string externalReference,
+        bool isRecurring,
         DateTime createdAt)
         : base(id)
     {
@@ -26,6 +27,7 @@ public sealed class Payment : AggregateRoot<Guid>
         Amount = amount;
         Source = source;
         ExternalReference = externalReference;
+        IsRecurring = isRecurring;
         CreatedAt = createdAt;
         Status = PaymentStatus.Pending;
     }
@@ -40,6 +42,12 @@ public sealed class Payment : AggregateRoot<Guid>
 
     public string ExternalReference { get; }
 
+    /// <summary>
+    /// Flagged at recording time (e.g. a subscription charge vs a one-off sale);
+    /// recurring revenue feeds the MRR approximation in <see cref="RevenueMetrics"/>.
+    /// </summary>
+    public bool IsRecurring { get; }
+
     public PaymentStatus Status { get; private set; }
 
     public DateTime CreatedAt { get; }
@@ -50,7 +58,8 @@ public sealed class Payment : AggregateRoot<Guid>
         Money amount,
         string source,
         string externalReference,
-        DateTime createdAt)
+        DateTime createdAt,
+        bool isRecurring = false)
     {
         if (string.IsNullOrWhiteSpace(source))
         {
@@ -58,7 +67,7 @@ public sealed class Payment : AggregateRoot<Guid>
         }
 
         return Result.Success(new Payment(
-            Guid.NewGuid(), productId, organizationId, amount, source.Trim(), externalReference.Trim(), createdAt));
+            Guid.NewGuid(), productId, organizationId, amount, source.Trim(), externalReference.Trim(), isRecurring, createdAt));
     }
 
     public Result Settle()

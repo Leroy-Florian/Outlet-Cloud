@@ -45,7 +45,11 @@ public sealed class CaptureProductSnapshotsUseCase(
                 continue;
             }
 
-            var snapshot = DownloadSnapshot.Create(productId, package.Registry, package.PackageId, downloads.Value, clock.UtcNow);
+            // Best-effort version lookup: a failing version endpoint never blocks the capture.
+            var versions = await packageStats.GetVersionsAsync(package.Registry, package.PackageId, cancellationToken);
+            var latestVersion = versions.IsSuccess ? versions.Value!.LatestVersion : null;
+
+            var snapshot = DownloadSnapshot.Create(productId, package.Registry, package.PackageId, downloads.Value, clock.UtcNow, latestVersion);
             if (snapshot.IsFailure)
             {
                 reports.Add(new SnapshotCaptureReport($"{package.Registry}:{package.PackageId.Value}", false, snapshot.Error));

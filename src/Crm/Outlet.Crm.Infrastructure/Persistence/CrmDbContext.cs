@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Outlet.Crm.Domain.Alerts;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.ApiMetrics;
 using Outlet.Crm.Domain.Feedback;
@@ -30,6 +31,8 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options) : DbCon
     public DbSet<Payment> Payments => Set<Payment>();
 
     public DbSet<Feedback> FeedbackItems => Set<Feedback>();
+
+    public DbSet<Alert> Alerts => Set<Alert>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(CrmDbContext).Assembly);

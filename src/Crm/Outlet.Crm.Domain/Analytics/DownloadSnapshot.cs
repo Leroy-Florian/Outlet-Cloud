@@ -11,6 +11,7 @@ public sealed class DownloadSnapshot : AggregateRoot<Guid>
         PackageRegistry registry,
         PackageId packageId,
         long totalDownloads,
+        string? latestVersion,
         DateTime capturedAt)
         : base(id)
     {
@@ -18,6 +19,7 @@ public sealed class DownloadSnapshot : AggregateRoot<Guid>
         Registry = registry;
         PackageId = packageId;
         TotalDownloads = totalDownloads;
+        LatestVersion = latestVersion;
         CapturedAt = capturedAt;
     }
 
@@ -29,6 +31,13 @@ public sealed class DownloadSnapshot : AggregateRoot<Guid>
 
     public long TotalDownloads { get; }
 
+    /// <summary>
+    /// Latest published version at capture time (best-effort: null when the
+    /// registry's version endpoint was unreachable). Trends use version changes
+    /// between consecutive snapshots as release markers.
+    /// </summary>
+    public string? LatestVersion { get; }
+
     public DateTime CapturedAt { get; }
 
     public static Result<DownloadSnapshot> Create(
@@ -36,7 +45,8 @@ public sealed class DownloadSnapshot : AggregateRoot<Guid>
         PackageRegistry registry,
         PackageId packageId,
         long totalDownloads,
-        DateTime capturedAt)
+        DateTime capturedAt,
+        string? latestVersion = null)
     {
         if (totalDownloads < 0)
         {
@@ -44,6 +54,6 @@ public sealed class DownloadSnapshot : AggregateRoot<Guid>
                 "DownloadSnapshot.NegativeCount: A download count cannot be negative.");
         }
 
-        return Result.Success(new DownloadSnapshot(Guid.NewGuid(), productId, registry, packageId, totalDownloads, capturedAt));
+        return Result.Success(new DownloadSnapshot(Guid.NewGuid(), productId, registry, packageId, totalDownloads, latestVersion, capturedAt));
     }
 }

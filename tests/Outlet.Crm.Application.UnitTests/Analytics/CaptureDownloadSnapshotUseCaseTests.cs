@@ -1,4 +1,5 @@
 using Outlet.Crm.Application.Analytics;
+using Outlet.Crm.Application.Ports;
 using Outlet.Crm.Application.UnitTests.Fakes;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.Products;
@@ -91,5 +92,32 @@ public sealed class CaptureDownloadSnapshotUseCaseTests
         result.IsFailure.Should().BeTrue();
         result.Error.Should().Be(error);
         _repository.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_StoreLatestVersion_When_VersionLookupSucceeds()
+    {
+        var stats = new FakePackageStatsClient(Result.Success(1234L))
+        {
+            VersionsResult = Result.Success(new PackageVersionInfo("3.1.0", Now, 12)),
+        };
+        var useCase = new CaptureDownloadSnapshotUseCase(stats, _products, _repository, new FixedClock(Now));
+
+        var result = await useCase.HandleAsync(
+            new CaptureDownloadSnapshotCommand(_product.Id.Value, PackageRegistry.NuGet, "outlet.cli"), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _repository.Items.Should().ContainSingle().Which.LatestVersion.Should().Be("3.1.0");
+        stats.VersionCalls.Should().ContainSingle();
+    }
+
+    [Fact]
+    public async Task Should_StoreSnapshotWithoutVersion_When_VersionLookupFails()
+    {
+        var result = await UseCase(Result.Success(1234L)).HandleAsync(
+            new CaptureDownloadSnapshotCommand(_product.Id.Value, PackageRegistry.NuGet, "outlet.cli"), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        _repository.Items.Should().ContainSingle().Which.LatestVersion.Should().BeNull();
     }
 }

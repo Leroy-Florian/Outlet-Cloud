@@ -41,7 +41,11 @@ public sealed class CaptureDownloadSnapshotUseCase(
             return totalDownloads;
         }
 
-        var snapshot = DownloadSnapshot.Create(productId, command.Registry, packageId.Value!, totalDownloads.Value, clock.UtcNow);
+        // Best-effort version lookup: a failing version endpoint never blocks the capture.
+        var versions = await packageStats.GetVersionsAsync(command.Registry, packageId.Value!, cancellationToken);
+        var latestVersion = versions.IsSuccess ? versions.Value!.LatestVersion : null;
+
+        var snapshot = DownloadSnapshot.Create(productId, command.Registry, packageId.Value!, totalDownloads.Value, clock.UtcNow, latestVersion);
         if (snapshot.IsFailure)
         {
             return Result.Failure<long>(snapshot.Error!);

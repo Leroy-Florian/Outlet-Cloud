@@ -12,7 +12,8 @@ public sealed record RecordPaymentCommand(
     decimal Amount,
     string Currency,
     string Source,
-    string ExternalReference);
+    string ExternalReference,
+    bool? IsRecurring = null);
 
 /// <summary>Records a pending payment coming from an external provider (Stripe, GitHub Sponsors…).</summary>
 public sealed class RecordPaymentUseCase(
@@ -46,7 +47,7 @@ public sealed class RecordPaymentUseCase(
             return Result.Failure<Guid>(money.Error!);
         }
 
-        var payment = Payment.Create(productId, organizationId, money.Value!, command.Source, command.ExternalReference, clock.UtcNow);
+        var payment = Payment.Create(productId, organizationId, money.Value!, command.Source, command.ExternalReference, clock.UtcNow, command.IsRecurring ?? false);
         if (payment.IsFailure)
         {
             return Result.Failure<Guid>(payment.Error!);

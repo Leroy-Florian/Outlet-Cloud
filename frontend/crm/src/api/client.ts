@@ -111,6 +111,7 @@ export interface PaymentDto {
   readonly currency: string
   readonly source: string
   readonly externalReference: string
+  readonly isRecurring: boolean
   readonly status: string
   readonly createdAt: string
 }
@@ -158,6 +159,7 @@ export interface PackageTotalDto {
   readonly registry: string
   readonly packageId: string
   readonly totalDownloads: number
+  readonly latestVersion: string | null
   readonly capturedAt: string
 }
 
@@ -404,6 +406,7 @@ export interface RecordPaymentInput {
   readonly currency: string
   readonly source: string
   readonly externalReference: string
+  readonly isRecurring: boolean
 }
 
 export const recordPayment = (input: RecordPaymentInput) =>
@@ -411,3 +414,74 @@ export const recordPayment = (input: RecordPaymentInput) =>
 
 export const settlePayment = (paymentId: string) =>
   sendJson<void>("POST", `/api/payments/${paymentId}/settle`)
+
+// ---------------------------------------------------------------------------
+// Revenus
+// ---------------------------------------------------------------------------
+
+export interface MonthlyProductRevenueDto {
+  readonly productId: string
+  readonly amount: number
+}
+
+export interface MonthlyRevenuePointDto {
+  /** "yyyy-MM" */
+  readonly month: string
+  readonly total: number
+  readonly recurring: number
+  readonly cumulative: number
+  readonly byProduct: ReadonlyArray<MonthlyProductRevenueDto>
+}
+
+export interface CurrencyTotalDto {
+  readonly currency: string
+  readonly total: number
+}
+
+export interface RevenueMetricsDto {
+  readonly primaryCurrency: string
+  readonly months: number
+  readonly mrr: number
+  readonly churnMonths: number
+  readonly series: ReadonlyArray<MonthlyRevenuePointDto>
+  readonly currencyTotals: ReadonlyArray<CurrencyTotalDto>
+}
+
+export const getRevenueMetrics = (months?: number) =>
+  getJson<RevenueMetricsDto>(
+    `/api/revenue/metrics${months === undefined ? "" : `?months=${months}`}`,
+  )
+
+// ---------------------------------------------------------------------------
+// Alertes
+// ---------------------------------------------------------------------------
+
+export type AlertType = "DownloadsSpike" | "DownloadsDrop" | "StarsMilestone" | "SnapshotFailure"
+
+export interface AlertDto {
+  readonly id: string
+  readonly productId: string
+  readonly type: string
+  readonly message: string
+  readonly triggeredAt: string
+  readonly acknowledged: boolean
+}
+
+export interface AlertFilters {
+  readonly productId?: string | undefined
+  readonly acknowledged?: boolean | undefined
+}
+
+export const listAlerts = (filters: AlertFilters = {}) => {
+  const params = new URLSearchParams()
+  if (filters.productId !== undefined) params.set("productId", filters.productId)
+  if (filters.acknowledged !== undefined) params.set("acknowledged", String(filters.acknowledged))
+  const query = params.toString()
+  return getJson<ReadonlyArray<AlertDto>>(`/api/alerts/${query === "" ? "" : `?${query}`}`)
+}
+
+export const acknowledgeAlert = (alertId: string) =>
+  sendJson<void>("POST", `/api/alerts/${alertId}/acknowledge`)
+
+export const evaluateAlerts = (productId: string) =>
+  sendJson<ReadonlyArray<AlertDto>>("POST", `/api/products/${productId}/alerts/evaluate`)

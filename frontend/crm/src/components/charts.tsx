@@ -4,6 +4,7 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
   LineChart,
@@ -15,9 +16,10 @@ import {
 import type {
   DailyDownloadReportDto,
   DailyTrafficPointDto,
+  MonthlyRevenuePointDto,
   RepositorySnapshotDto,
 } from "../api/client"
-import { formatDate } from "./ui"
+import { formatDate, formatMoney } from "./ui"
 
 const PALETTE = ["#6366f1", "#34d399", "#fbbf24", "#60a5fa", "#f472b6", "#f87171"]
 
@@ -95,6 +97,53 @@ export const DailyTrafficChart = ({ days }: { days: ReadonlyArray<DailyTrafficPo
     </ResponsiveContainer>
   </div>
 )
+
+/**
+ * Revenus mensuels (devise primaire) : barres empilées récurrent / one-shot,
+ * ligne du cumul sur un second axe.
+ */
+export const MonthlyRevenueChart = ({
+  series,
+  currency,
+}: {
+  series: ReadonlyArray<MonthlyRevenuePointDto>
+  currency: string
+}) => {
+  const rows = series.map((point) => ({
+    month: point.month,
+    Récurrent: point.recurring,
+    "One-shot": point.total - point.recurring,
+    Cumul: point.cumulative,
+  }))
+
+  return (
+    <div className="chart-wrap">
+      <ResponsiveContainer>
+        <ComposedChart data={rows}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#27272a" vertical={false} />
+          <XAxis dataKey="month" {...axisProps} />
+          <YAxis yAxisId="month" {...axisProps} width={56} />
+          <YAxis yAxisId="cumulative" orientation="right" {...axisProps} width={56} />
+          <Tooltip
+            contentStyle={tooltipStyle}
+            formatter={(value) => formatMoney(Number(value), currency)}
+          />
+          <Legend wrapperStyle={{ fontSize: 12 }} />
+          <Bar yAxisId="month" dataKey="Récurrent" stackId="revenue" fill="#34d399" />
+          <Bar yAxisId="month" dataKey="One-shot" stackId="revenue" fill="#6366f1" />
+          <Line
+            yAxisId="cumulative"
+            type="monotone"
+            dataKey="Cumul"
+            stroke="#fbbf24"
+            strokeWidth={2}
+            dot={false}
+          />
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
+  )
+}
 
 export const RepositoryHistoryChart = ({
   history,

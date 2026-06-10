@@ -37,6 +37,7 @@ export const PaymentsPage = () => {
   const [currency, setCurrency] = useState("EUR")
   const [source, setSource] = useState("Stripe")
   const [reference, setReference] = useState("")
+  const [isRecurring, setIsRecurring] = useState(false)
   const [creating, setCreating] = useState(false)
   const [actionError, setActionError] = useState<string | null>(null)
   const [settling, setSettling] = useState<string | null>(null)
@@ -57,9 +58,11 @@ export const PaymentsPage = () => {
         currency,
         source: source.trim(),
         externalReference: reference.trim(),
+        isRecurring,
       })
       setAmount("")
       setReference("")
+      setIsRecurring(false)
       payments.reload()
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e))
@@ -147,6 +150,15 @@ export const PaymentsPage = () => {
               required
             />
           </div>
+          <div className="field">
+            <label htmlFor="payment-recurring">Récurrent</label>
+            <input
+              id="payment-recurring"
+              type="checkbox"
+              checked={isRecurring}
+              onChange={(e) => setIsRecurring(e.target.checked)}
+            />
+          </div>
           <button
             className="btn btn-primary"
             disabled={creating || productId === "" || amount === ""}
@@ -186,7 +198,10 @@ export const PaymentsPage = () => {
                   <td>{organizationName(payment.organizationId)}</td>
                   <td className="num">{formatMoney(payment.amount, payment.currency)}</td>
                   <td>
-                    {payment.source}
+                    {payment.source}{" "}
+                    {payment.isRecurring ? (
+                      <span className="badge badge-violet">Récurrent</span>
+                    ) : null}
                     <div className="dim">{payment.externalReference}</div>
                   </td>
                   <td>{statusBadge(payment.status)}</td>

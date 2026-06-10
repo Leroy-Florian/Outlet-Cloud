@@ -63,10 +63,13 @@ const RepositoryHistorySection = ({
 
 const TrackingSection = ({
   product,
+  latestVersions,
   onChanged,
   onError,
 }: {
   product: ProductDto
+  /** Dernière version connue par package ("Registry:packageId"), issue du résumé analytics. */
+  latestVersions: ReadonlyMap<string, string>
   onChanged: () => void
   onError: (message: string) => void
 }) => {
@@ -102,6 +105,11 @@ const TrackingSection = ({
               <span className="chip" key={`${pkg.registry}:${pkg.packageId}`}>
                 <span className="badge badge-blue">{pkg.registry}</span>
                 {pkg.packageId}
+                {latestVersions.has(`${pkg.registry}:${pkg.packageId}`) ? (
+                  <span className="badge badge-violet" title="Dernière version publiée">
+                    v{latestVersions.get(`${pkg.registry}:${pkg.packageId}`)}
+                  </span>
+                ) : null}
                 <button
                   title="Ne plus suivre"
                   disabled={busy}
@@ -382,6 +390,13 @@ export const ProductDetailPage = () => {
 
       <TrackingSection
         product={product}
+        latestVersions={
+          new Map(
+            (summary.data?.packages ?? [])
+              .filter((pkg) => pkg.latestVersion !== null)
+              .map((pkg) => [`${pkg.registry}:${pkg.packageId}`, pkg.latestVersion as string]),
+          )
+        }
         onChanged={() => {
           products.reload()
           reloadAnalytics()

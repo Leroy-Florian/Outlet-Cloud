@@ -90,6 +90,25 @@ export const TrendBadge = ({ comparison }: { comparison: PeriodComparisonDto }) 
   )
 }
 
+/**
+ * Badge de type d'alerte : pic vert, chute rouge, jalon de stars jaune,
+ * échec de capture gris (badge neutre).
+ */
+export const AlertTypeBadge = ({ type }: { type: string }) => {
+  switch (type) {
+    case "DownloadsSpike":
+      return <span className="badge badge-green">↗ Pic de téléchargements</span>
+    case "DownloadsDrop":
+      return <span className="badge badge-red">↘ Chute de téléchargements</span>
+    case "StarsMilestone":
+      return <span className="badge badge-amber">★ Jalon de stars</span>
+    case "SnapshotFailure":
+      return <span className="badge">Échec de capture</span>
+    default:
+      return <span className="badge">{type}</span>
+  }
+}
+
 export const PERIOD_OPTIONS = [7, 30, 90] as const
 
 /** Sélecteur de période global (7/30/90 j) — pilote le paramètre `days` des analytics. */

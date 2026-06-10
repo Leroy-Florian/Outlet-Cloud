@@ -1,6 +1,8 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom"
 import { Layout } from "./components/Layout"
+import { AlertsPage } from "./pages/AlertsPage"
 import { DashboardPage } from "./pages/DashboardPage"
+import { RevenuePage } from "./pages/RevenuePage"
 import { FeedbackPage } from "./pages/FeedbackPage"
 import { PaymentsPage } from "./pages/PaymentsPage"
 import { ProductDetailPage } from "./pages/ProductDetailPage"
@@ -16,6 +18,8 @@ export const App = () => (
         <Route path="/produits/:productId" element={<ProductDetailPage />} />
         <Route path="/prospects" element={<ProspectsPage />} />
         <Route path="/paiements" element={<PaymentsPage />} />
+        <Route path="/revenus" element={<RevenuePage />} />
+        <Route path="/alertes" element={<AlertsPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>
     </Routes>

@@ -1,15 +1,18 @@
 import { useEffect, useMemo, useState } from "react"
 import { Link, useNavigate } from "react-router-dom"
 import {
+  acknowledgeAlert,
   getDailyDownloads,
   getDailyTraffic,
   getPortfolio,
+  listAlerts,
   listPayments,
   listProducts,
   listProspects,
 } from "../api/client"
 import { useQuery } from "../hooks/useQuery"
 import {
+  AlertTypeBadge,
   EmptyState,
   ErrorBanner,
   Loading,
@@ -27,6 +30,23 @@ export const DashboardPage = () => {
   const products = useQuery(listProducts, [])
   const prospects = useQuery(listProspects, [])
   const payments = useQuery(listPayments, [])
+  const alerts = useQuery(() => listAlerts({ acknowledged: false }), [])
+
+  const [acknowledging, setAcknowledging] = useState<string | null>(null)
+  const [alertError, setAlertError] = useState<string | null>(null)
+
+  const handleAcknowledge = async (alertId: string) => {
+    setAcknowledging(alertId)
+    setAlertError(null)
+    try {
+      await acknowledgeAlert(alertId)
+      alerts.reload()
+    } catch (e) {
+      setAlertError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setAcknowledging(null)
+    }
+  }
 
   const [days, setDays] = useState(30)
   const [selectedId, setSelectedId] = useState("")
@@ -97,6 +117,52 @@ export const DashboardPage = () => {
       </header>
 
       {products.error !== null ? <ErrorBanner message={products.error} /> : null}
+      {alertError !== null ? <ErrorBanner message={alertError} /> : null}
+
+      <div className="card section">
+        <h2 className="card-title">
+          Alertes récentes{" "}
+          <Link to="/alertes" className="dim" style={{ fontSize: 13 }}>
+            tout voir →
+          </Link>
+        </h2>
+        {alerts.loading ? (
+          <Loading />
+        ) : (alerts.data ?? []).length === 0 ? (
+          <EmptyState title="Aucune alerte à traiter">
+            Les pics, chutes et jalons détectés apparaîtront ici.
+          </EmptyState>
+        ) : (
+          <table className="table">
+            <tbody>
+              {[...(alerts.data ?? [])]
+                .sort((a, b) => b.triggeredAt.localeCompare(a.triggeredAt))
+                .slice(0, 5)
+                .map((alert) => (
+                  <tr key={alert.id}>
+                    <td>
+                      <AlertTypeBadge type={alert.type} />
+                    </td>
+                    <td>
+                      {alert.message}
+                      <div className="dim">{productName(alert.productId)}</div>
+                    </td>
+                    <td className="dim">{formatDateTime(alert.triggeredAt)}</td>
+                    <td style={{ textAlign: "right" }}>
+                      <button
+                        className="btn btn-ghost"
+                        disabled={acknowledging === alert.id}
+                        onClick={() => void handleAcknowledge(alert.id)}
+                      >
+                        {acknowledging === alert.id ? "…" : "Acquitter"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       <div className="card-grid">
         <StatCard label="Produits" value={formatNumber((products.data ?? []).length)} />

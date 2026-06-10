@@ -5,6 +5,7 @@ using Outlet.Crm.Domain.Organizations;
 using Outlet.Crm.Domain.Payments;
 using Outlet.Crm.Domain.Products;
 using Outlet.Crm.Domain.Prospects;
+using Outlet.Crm.Domain.Traffic;
 
 namespace Outlet.Crm.Application.UnitTests.Fakes;
 
@@ -87,6 +88,9 @@ public sealed class FakeDownloadSnapshotRepository : IDownloadSnapshotRepository
         Task.FromResult<IReadOnlyList<DownloadSnapshot>>(
             [.. Items.Where(s => s.ProductId == productId && s.Registry == registry && s.PackageId == packageId)]);
 
+    public Task<IReadOnlyList<DownloadSnapshot>> ListByProductAsync(ProductId productId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<DownloadSnapshot>>([.. Items.Where(s => s.ProductId == productId)]);
+
     public Task AddAsync(DownloadSnapshot snapshot, CancellationToken cancellationToken = default)
     {
         Items.Add(snapshot);
@@ -104,6 +108,9 @@ public sealed class FakeRepositorySnapshotRepository : IRepositorySnapshotReposi
         CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<RepositorySnapshot>>(
             [.. Items.Where(s => s.ProductId == productId && s.Repository == repository)]);
+
+    public Task<IReadOnlyList<RepositorySnapshot>> ListByProductAsync(ProductId productId, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<RepositorySnapshot>>([.. Items.Where(s => s.ProductId == productId)]);
 
     public Task AddAsync(RepositorySnapshot snapshot, CancellationToken cancellationToken = default)
     {
@@ -148,6 +155,21 @@ public sealed class FakePaymentRepository : IPaymentRepository
     public Task UpdateAsync(Payment payment, CancellationToken cancellationToken = default)
     {
         UpdateCount++;
+        return Task.CompletedTask;
+    }
+}
+
+public sealed class FakeTrafficSampleRepository : ITrafficSampleRepository
+{
+    public List<TrafficSample> Items { get; } = [];
+
+    public Task<IReadOnlyList<TrafficSample>> ListSinceAsync(ProductId productId, DateTime since, CancellationToken cancellationToken = default) =>
+        Task.FromResult<IReadOnlyList<TrafficSample>>(
+            [.. Items.Where(s => s.ProductId == productId && s.OccurredAt >= since)]);
+
+    public Task AddAsync(TrafficSample sample, CancellationToken cancellationToken = default)
+    {
+        Items.Add(sample);
         return Task.CompletedTask;
     }
 }

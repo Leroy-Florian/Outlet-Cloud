@@ -12,5 +12,7 @@ public interface IDownloadSnapshotRepository
         PackageId packageId,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<DownloadSnapshot>> ListByProductAsync(ProductId productId, CancellationToken cancellationToken = default);
+
     Task AddAsync(DownloadSnapshot snapshot, CancellationToken cancellationToken = default);
 }

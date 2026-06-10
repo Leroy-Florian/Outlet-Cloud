@@ -14,6 +14,7 @@ public sealed class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Id).HasConversion(id => id.Value, value => new ProductId(value));
         builder.Property(p => p.Name).HasMaxLength(200);
         builder.Property(p => p.Description).HasMaxLength(2000);
+        builder.Property(p => p.IsArchived);
         builder.Property(p => p.CreatedAt);
 
         builder.OwnsMany(p => p.Packages, packages =>

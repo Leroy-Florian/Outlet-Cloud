@@ -5,6 +5,7 @@ using Outlet.Crm.Application.Payments;
 using Outlet.Crm.Application.Products;
 using Outlet.Crm.Application.Ports;
 using Outlet.Crm.Application.Prospects;
+using Outlet.Crm.Application.Traffic;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.Prospects;
 using Outlet.Kernel.Shared;
@@ -31,11 +32,38 @@ public static class CrmEndpoints
                 p.Description,
                 packages = p.Packages.Select(t => new { registry = t.Registry.ToString(), packageId = t.PackageId.Value }),
                 repositories = p.Repositories.Select(r => r.Repository.FullName),
+                p.IsArchived,
                 p.CreatedAt,
             })));
 
         products.MapPost("/", async (CreateProductCommand command, CreateProductUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(command, ct), id => Results.Created($"/api/products/{id.Value}", new { id = id.Value })));
+
+        products.MapPut("/{productId:guid}", async (Guid productId, UpdateProductRequest request, UpdateProductUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new UpdateProductCommand(productId, request.Name, request.Description), ct)));
+
+        products.MapDelete("/{productId:guid}", async (Guid productId, ArchiveProductUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new ArchiveProductCommand(productId), ct)));
+
+        products.MapDelete("/{productId:guid}/packages/{registry}/{packageId}",
+            async (Guid productId, PackageRegistry registry, string packageId, UntrackPackageUseCase useCase, CancellationToken ct) =>
+                ToHttp(await useCase.HandleAsync(new UntrackPackageCommand(productId, registry, packageId), ct)));
+
+        products.MapDelete("/{productId:guid}/repositories/{owner}/{name}",
+            async (Guid productId, string owner, string name, UntrackRepositoryUseCase useCase, CancellationToken ct) =>
+                ToHttp(await useCase.HandleAsync(new UntrackRepositoryCommand(productId, $"{owner}/{name}"), ct)));
+
+        products.MapGet("/{productId:guid}/analytics/downloads/daily",
+            async (Guid productId, DateOnly? from, DateOnly? to, GetProductDailyDownloadsUseCase useCase, CancellationToken ct) =>
+                ToHttp(await useCase.HandleAsync(new GetProductDailyDownloadsQuery(productId, from, to), ct), Results.Ok));
+
+        products.MapGet("/{productId:guid}/analytics/traffic/daily",
+            async (Guid productId, DateOnly? from, DateOnly? to, GetDailyTrafficUseCase useCase, CancellationToken ct) =>
+                ToHttp(await useCase.HandleAsync(new GetDailyTrafficQuery(productId, from, to), ct), Results.Ok));
+
+        products.MapGet("/{productId:guid}/analytics/summary",
+            async (Guid productId, GetProductAnalyticsSummaryUseCase useCase, CancellationToken ct) =>
+                ToHttp(await useCase.HandleAsync(new GetProductAnalyticsSummaryQuery(productId), ct), Results.Ok));
 
         products.MapPost("/{productId:guid}/packages", async (Guid productId, TrackPackageRequest request, TrackPackageUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new TrackPackageCommand(productId, request.Registry, request.PackageId), ct)));
@@ -115,6 +143,11 @@ public static class CrmEndpoints
         prospects.MapPost("/{id:guid}/stage", async (Guid id, ProspectStage target, AdvanceProspectStageUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new AdvanceProspectStageCommand(new ProspectId(id), target), ct)));
 
+        var traffic = api.MapGroup("/traffic");
+
+        traffic.MapPost("/", async (RecordTrafficEventCommand command, RecordTrafficEventUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(command, ct)));
+
         var metrics = api.MapGroup("/metrics");
 
         metrics.MapPost("/", async (RecordApiMetricCommand command, RecordApiMetricUseCase useCase, CancellationToken ct) =>
@@ -144,6 +177,8 @@ public static class CrmEndpoints
     }
 
     private sealed record TrackPackageRequest(PackageRegistry Registry, string PackageId);
+
+    private sealed record UpdateProductRequest(string Name, string? Description);
 
     private sealed record TrackRepositoryRequest(string Repository);
 

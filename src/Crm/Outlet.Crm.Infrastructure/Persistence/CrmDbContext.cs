@@ -5,6 +5,7 @@ using Outlet.Crm.Domain.Organizations;
 using Outlet.Crm.Domain.Payments;
 using Outlet.Crm.Domain.Products;
 using Outlet.Crm.Domain.Prospects;
+using Outlet.Crm.Domain.Traffic;
 
 namespace Outlet.Crm.Infrastructure.Persistence;
 
@@ -22,6 +23,8 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options) : DbCon
     public DbSet<DownloadSnapshot> DownloadSnapshots => Set<DownloadSnapshot>();
 
     public DbSet<ApiMetricSample> ApiMetricSamples => Set<ApiMetricSample>();
+
+    public DbSet<TrafficSample> TrafficSamples => Set<TrafficSample>();
 
     public DbSet<Payment> Payments => Set<Payment>();
 

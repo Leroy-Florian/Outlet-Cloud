@@ -18,6 +18,15 @@ public sealed class EfRepositorySnapshotRepository(CrmDbContext db) : IRepositor
             .OrderBy(s => s.CapturedAt)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<RepositorySnapshot>> ListByProductAsync(
+        ProductId productId,
+        CancellationToken cancellationToken = default) =>
+        await db.RepositorySnapshots
+            .AsNoTracking()
+            .Where(s => s.ProductId == productId)
+            .OrderBy(s => s.CapturedAt)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(RepositorySnapshot snapshot, CancellationToken cancellationToken = default)
     {
         db.RepositorySnapshots.Add(snapshot);

@@ -11,5 +11,7 @@ public interface IRepositorySnapshotRepository
         RepositoryName repository,
         CancellationToken cancellationToken = default);
 
+    Task<IReadOnlyList<RepositorySnapshot>> ListByProductAsync(ProductId productId, CancellationToken cancellationToken = default);
+
     Task AddAsync(RepositorySnapshot snapshot, CancellationToken cancellationToken = default);
 }

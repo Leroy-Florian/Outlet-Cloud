@@ -21,9 +21,11 @@ public sealed class Product : AggregateRoot<ProductId>
         CreatedAt = createdAt;
     }
 
-    public string Name { get; }
+    public string Name { get; private set; }
 
-    public string? Description { get; }
+    public string? Description { get; private set; }
+
+    public bool IsArchived { get; private set; }
 
     public DateTime CreatedAt { get; }
 
@@ -41,8 +43,45 @@ public sealed class Product : AggregateRoot<ProductId>
         return Result.Success(new Product(ProductId.New(), name.Trim(), description?.Trim(), createdAt));
     }
 
+    public Result Update(string name, string? description)
+    {
+        if (IsArchived)
+        {
+            return Result.Failure(ProductErrors.Archived(Id));
+        }
+
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return Result.Failure(ProductErrors.NameRequired);
+        }
+
+        Name = name.Trim();
+        Description = description?.Trim();
+        return Result.Success();
+    }
+
+    /// <summary>
+    /// Soft archive: the product disappears from the active dashboard but its
+    /// history (snapshots, traffic, payments) is preserved.
+    /// </summary>
+    public Result Archive()
+    {
+        if (IsArchived)
+        {
+            return Result.Failure(ProductErrors.AlreadyArchived(Id));
+        }
+
+        IsArchived = true;
+        return Result.Success();
+    }
+
     public Result TrackPackage(PackageRegistry registry, PackageId packageId)
     {
+        if (IsArchived)
+        {
+            return Result.Failure(ProductErrors.Archived(Id));
+        }
+
         if (IsTracking(registry, packageId))
         {
             return Result.Failure(ProductErrors.PackageAlreadyTracked(registry, packageId));
@@ -52,17 +91,44 @@ public sealed class Product : AggregateRoot<ProductId>
         return Result.Success();
     }
 
+    public Result UntrackPackage(PackageRegistry registry, PackageId packageId)
+    {
+        var removed = _packages.RemoveAll(p => p.Registry == registry && p.PackageId == packageId);
+        if (removed is 0)
+        {
+            return Result.Failure(ProductErrors.PackageNotTracked(registry, packageId));
+        }
+
+        return Result.Success();
+    }
+
     public bool IsTracking(PackageRegistry registry, PackageId packageId) =>
         _packages.Any(p => p.Registry == registry && p.PackageId == packageId);
 
     public Result TrackRepository(RepositoryName repository)
     {
+        if (IsArchived)
+        {
+            return Result.Failure(ProductErrors.Archived(Id));
+        }
+
         if (IsTrackingRepository(repository))
         {
             return Result.Failure(ProductErrors.RepositoryAlreadyTracked(repository));
         }
 
         _repositories.Add(new TrackedRepository(Guid.NewGuid(), repository));
+        return Result.Success();
+    }
+
+    public Result UntrackRepository(RepositoryName repository)
+    {
+        var removed = _repositories.RemoveAll(r => r.Repository == repository);
+        if (removed is 0)
+        {
+            return Result.Failure(ProductErrors.RepositoryNotTracked(repository));
+        }
+
         return Result.Success();
     }
 

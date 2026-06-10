@@ -18,4 +18,13 @@ public static class ProductErrors
 
     public static string RepositoryAlreadyTracked(RepositoryName repository) =>
         $"Product.RepositoryAlreadyTracked: Repository '{repository.FullName}' is already tracked.";
+
+    public static string RepositoryNotTracked(RepositoryName repository) =>
+        $"Product.RepositoryNotTracked: Repository '{repository.FullName}' is not tracked by this product.";
+
+    public static string Archived(ProductId id) =>
+        $"Product.Archived: Product '{id.Value}' is archived and can no longer be modified.";
+
+    public static string AlreadyArchived(ProductId id) =>
+        $"Product.AlreadyArchived: Product '{id.Value}' is already archived.";
 }

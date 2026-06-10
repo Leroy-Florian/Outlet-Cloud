@@ -4,6 +4,7 @@ using Outlet.Crm.Application.Organizations;
 using Outlet.Crm.Application.Payments;
 using Outlet.Crm.Application.Products;
 using Outlet.Crm.Application.Prospects;
+using Outlet.Crm.Application.Traffic;
 using Outlet.Kernel.Shared;
 
 namespace Outlet.Crm.Web.DependencyInjection;
@@ -20,6 +21,10 @@ public static class CrmWebServiceCollectionExtensions
         services.AddSingleton<ICurrentDateTimeProvider, UtcDateTimeProvider>();
 
         services.AddScoped<CreateProductUseCase>();
+        services.AddScoped<UpdateProductUseCase>();
+        services.AddScoped<ArchiveProductUseCase>();
+        services.AddScoped<UntrackPackageUseCase>();
+        services.AddScoped<UntrackRepositoryUseCase>();
         services.AddScoped<TrackPackageUseCase>();
         services.AddScoped<TrackRepositoryUseCase>();
         services.AddScoped<CreateOrganizationUseCase>();
@@ -31,6 +36,10 @@ public static class CrmWebServiceCollectionExtensions
         services.AddScoped<GetRepositoryHistoryUseCase>();
         services.AddScoped<RecordApiMetricUseCase>();
         services.AddScoped<GetEndpointStatisticsUseCase>();
+        services.AddScoped<GetProductDailyDownloadsUseCase>();
+        services.AddScoped<GetProductAnalyticsSummaryUseCase>();
+        services.AddScoped<RecordTrafficEventUseCase>();
+        services.AddScoped<GetDailyTrafficUseCase>();
         services.AddScoped<RecordPaymentUseCase>();
         services.AddScoped<SettlePaymentUseCase>();
 

@@ -2,13 +2,15 @@ import { useState, type FormEvent } from "react"
 import {
   advanceProspectStage,
   createProspect,
+  getProspectPipelineStats,
   listOrganizations,
   listProducts,
   listProspects,
+  updateProspect,
   type ProspectDto,
 } from "../api/client"
 import { useQuery } from "../hooks/useQuery"
-import { EmptyState, ErrorBanner, Loading } from "../components/ui"
+import { EmptyState, ErrorBanner, Loading, StatCard, formatMoney, formatNumber } from "../components/ui"
 
 const STAGES = ["New", "Contacted", "Qualified", "Won", "Lost"] as const
 
@@ -46,12 +48,17 @@ const ProspectCard = ({
   onError: (message: string) => void
 }) => {
   const [busy, setBusy] = useState(false)
+  const [editing, setEditing] = useState(false)
+  const [valueInput, setValueInput] = useState(
+    prospect.estimatedValue === null ? "" : String(prospect.estimatedValue),
+  )
+  const [companyInput, setCompanyInput] = useState(prospect.company ?? "")
   const target = nextStage(prospect.stage)
 
-  const advance = async (to: string) => {
+  const run = async (action: () => Promise<void>) => {
     setBusy(true)
     try {
-      await advanceProspectStage(prospect.id, to)
+      await action()
       onChanged()
     } catch (e) {
       onError(e instanceof Error ? e.message : String(e))
@@ -60,28 +67,82 @@ const ProspectCard = ({
     }
   }
 
+  const advance = (to: string) => run(() => advanceProspectStage(prospect.id, to))
+
+  const save = () => {
+    const parsed = valueInput.trim() === "" ? null : Number(valueInput.replace(",", "."))
+    if (parsed !== null && (Number.isNaN(parsed) || parsed < 0)) {
+      onError("Valeur estimée invalide.")
+      return
+    }
+    void run(async () => {
+      await updateProspect(prospect.id, {
+        estimatedValue: parsed,
+        estimatedValueCurrency: parsed === null ? null : "EUR",
+        company: companyInput.trim() === "" ? null : companyInput.trim(),
+      })
+      setEditing(false)
+    })
+  }
+
   return (
     <div className="prospect-card">
       <strong>{prospect.name}</strong>
       <div className="dim">{prospect.email}</div>
       {prospect.company !== null ? <div className="dim">{prospect.company}</div> : null}
       <div className="dim">Produit : {productName}</div>
-      <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
-        {target !== null ? (
-          <button className="btn btn-ghost" disabled={busy} onClick={() => void advance(target)}>
-            → {STAGE_LABELS[target]}
+      {prospect.estimatedValue !== null ? (
+        <div style={{ marginTop: 6 }}>
+          <span className="badge badge-green">
+            {formatMoney(prospect.estimatedValue, prospect.estimatedValueCurrency ?? "EUR")}
+          </span>
+        </div>
+      ) : null}
+      {editing ? (
+        <div style={{ marginTop: 8, display: "grid", gap: 6 }}>
+          <div className="field">
+            <label>Valeur estimée (EUR)</label>
+            <input
+              inputMode="decimal"
+              value={valueInput}
+              onChange={(e) => setValueInput(e.target.value)}
+              placeholder="2500"
+            />
+          </div>
+          <div className="field">
+            <label>Société</label>
+            <input value={companyInput} onChange={(e) => setCompanyInput(e.target.value)} />
+          </div>
+          <div style={{ display: "flex", gap: 6 }}>
+            <button className="btn btn-primary" disabled={busy} onClick={save}>
+              Enregistrer
+            </button>
+            <button className="btn btn-ghost" disabled={busy} onClick={() => setEditing(false)}>
+              Annuler
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div style={{ marginTop: 8, display: "flex", gap: 6, flexWrap: "wrap" }}>
+          {target !== null ? (
+            <button className="btn btn-ghost" disabled={busy} onClick={() => void advance(target)}>
+              → {STAGE_LABELS[target]}
+            </button>
+          ) : null}
+          <button className="btn btn-ghost" disabled={busy} onClick={() => setEditing(true)}>
+            Modifier
           </button>
-        ) : null}
-        {prospect.stage !== "Lost" && prospect.stage !== "Won" ? (
-          <button
-            className="btn btn-ghost btn-danger"
-            disabled={busy}
-            onClick={() => void advance("Lost")}
-          >
-            Perdu
-          </button>
-        ) : null}
-      </div>
+          {prospect.stage !== "Lost" && prospect.stage !== "Won" ? (
+            <button
+              className="btn btn-ghost btn-danger"
+              disabled={busy}
+              onClick={() => void advance("Lost")}
+            >
+              Perdu
+            </button>
+          ) : null}
+        </div>
+      )}
     </div>
   )
 }
@@ -90,6 +151,12 @@ export const ProspectsPage = () => {
   const prospects = useQuery(listProspects, [])
   const products = useQuery(listProducts, [])
   const organizations = useQuery(listOrganizations, [])
+  const stats = useQuery(getProspectPipelineStats, [])
+
+  const reloadAll = () => {
+    prospects.reload()
+    stats.reload()
+  }
 
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
@@ -116,7 +183,7 @@ export const ProspectsPage = () => {
       setName("")
       setEmail("")
       setCompany("")
-      prospects.reload()
+      reloadAll()
     } catch (e) {
       setActionError(e instanceof Error ? e.message : String(e))
     } finally {
@@ -135,6 +202,33 @@ export const ProspectsPage = () => {
           <p className="page-subtitle">Pipeline commercial par étape.</p>
         </div>
       </header>
+
+      {stats.error !== null ? <ErrorBanner message={stats.error} /> : null}
+      {stats.data !== null ? (
+        <div className="pipeline-stats">
+          <StatCard
+            label="Prospects"
+            value={formatNumber(stats.data.totalProspects)}
+            hint="Pipeline complet"
+          />
+          <StatCard
+            label="Valeur estimée totale"
+            value={formatMoney(stats.data.totalEstimatedValue, "EUR")}
+          />
+          {stats.data.stages.map((s) => (
+            <StatCard
+              key={s.stage}
+              label={STAGE_LABELS[s.stage] ?? s.stage}
+              value={formatNumber(s.count)}
+              hint={`${formatMoney(s.totalEstimatedValue, "EUR")}${
+                s.conversionRateToNext === null
+                  ? ""
+                  : ` · conversion ${(s.conversionRateToNext * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`
+              }`}
+            />
+          ))}
+        </div>
+      ) : null}
 
       <div className="card">
         <h2 className="card-title">Nouveau prospect</h2>
@@ -214,7 +308,7 @@ export const ProspectsPage = () => {
                         key={prospect.id}
                         prospect={prospect}
                         productName={productName(prospect.productId)}
-                        onChanged={prospects.reload}
+                        onChanged={reloadAll}
                         onError={setActionError}
                       />
                     ))

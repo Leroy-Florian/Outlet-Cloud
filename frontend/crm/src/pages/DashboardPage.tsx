@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState } from "react"
-import { Link } from "react-router-dom"
+import { Link, useNavigate } from "react-router-dom"
 import {
   getDailyDownloads,
   getDailyTraffic,
+  getPortfolio,
   listPayments,
   listProducts,
   listProspects,
@@ -12,11 +13,13 @@ import {
   EmptyState,
   ErrorBanner,
   Loading,
+  PeriodSelector,
   StatCard,
+  TrendBadge,
   formatDateTime,
   formatMoney,
   formatNumber,
-  last30DaysRange,
+  lastDaysRange,
 } from "../components/ui"
 import { DailyDownloadsChart, DailyTrafficChart } from "../components/charts"
 
@@ -25,7 +28,11 @@ export const DashboardPage = () => {
   const prospects = useQuery(listProspects, [])
   const payments = useQuery(listPayments, [])
 
+  const [days, setDays] = useState(30)
   const [selectedId, setSelectedId] = useState("")
+  const navigate = useNavigate()
+
+  const portfolio = useQuery(() => getPortfolio(days), [days])
 
   useEffect(() => {
     if (selectedId === "" && products.data !== null && products.data.length > 0) {
@@ -33,20 +40,20 @@ export const DashboardPage = () => {
     }
   }, [products.data, selectedId])
 
-  const range = useMemo(last30DaysRange, [])
+  const range = useMemo(() => lastDaysRange(days), [days])
   const downloads = useQuery(
     () =>
       selectedId === ""
         ? Promise.resolve(null)
         : getDailyDownloads(selectedId, range.from, range.to),
-    [selectedId],
+    [selectedId, range],
   )
   const traffic = useQuery(
     () =>
       selectedId === ""
         ? Promise.resolve(null)
         : getDailyTraffic(selectedId, range.from, range.to),
-    [selectedId],
+    [selectedId, range],
   )
 
   const productName = (id: string) => products.data?.find((p) => p.id === id)?.name ?? id
@@ -72,18 +79,21 @@ export const DashboardPage = () => {
           <h1 className="page-title">Dashboard</h1>
           <p className="page-subtitle">Vue d'ensemble des produits Outlet.</p>
         </div>
-        {(products.data ?? []).length > 0 ? (
-          <div className="field">
-            <label>Produit analysé</label>
-            <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
-              {(products.data ?? []).map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null}
+        <div style={{ display: "flex", gap: 16, alignItems: "flex-end" }}>
+          <PeriodSelector value={days} onChange={setDays} />
+          {(products.data ?? []).length > 0 ? (
+            <div className="field">
+              <label>Produit analysé</label>
+              <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
+                {(products.data ?? []).map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
+        </div>
       </header>
 
       {products.error !== null ? <ErrorBanner message={products.error} /> : null}
@@ -99,6 +109,67 @@ export const DashboardPage = () => {
         <StatCard label="Encaissé (EUR)" value={formatMoney(settledTotal, "EUR")} />
       </div>
 
+      <div className="card section">
+        <h2 className="card-title">Portefeuille ({days} j)</h2>
+        {portfolio.loading ? (
+          <Loading />
+        ) : portfolio.error !== null ? (
+          <ErrorBanner message={portfolio.error} />
+        ) : portfolio.data === null || portfolio.data.products.length === 0 ? (
+          <EmptyState title="Aucun produit dans le portefeuille">
+            Créez un produit dans l'onglet <Link to="/produits">Produits</Link> pour démarrer.
+          </EmptyState>
+        ) : (
+          <table className="table">
+            <thead>
+              <tr>
+                <th>Produit</th>
+                <th className="num">Packages suivis</th>
+                <th className="num">Téléchargements ({portfolio.data.periodDays} j)</th>
+                <th className="num">Trafic ({portfolio.data.periodDays} j)</th>
+                <th className="num">Stars</th>
+                <th className="num">Feedbacks ouverts</th>
+              </tr>
+            </thead>
+            <tbody>
+              {portfolio.data.products.map((row) => (
+                <tr
+                  key={row.productId}
+                  className="portfolio-row"
+                  onClick={() => void navigate(`/produits/${row.productId}`)}
+                >
+                  <td>
+                    <strong>{row.name}</strong>
+                    <div className="dim">
+                      {formatNumber(row.totalDownloads)} téléchargements au total
+                    </div>
+                  </td>
+                  <td className="num">{formatNumber(row.packageCount)}</td>
+                  <td className="num">
+                    {formatNumber(row.downloads.currentPeriod)}{" "}
+                    <TrendBadge comparison={row.downloads} />
+                  </td>
+                  <td className="num">
+                    {formatNumber(row.pageViews.currentPeriod)}{" "}
+                    <TrendBadge comparison={row.pageViews} />
+                  </td>
+                  <td className="num">{formatNumber(row.latestStars)}</td>
+                  <td className="num">
+                    {row.openFeedbackCount > 0 ? (
+                      <span className="badge badge-amber">
+                        {formatNumber(row.openFeedbackCount)}
+                      </span>
+                    ) : (
+                      <span className="dim">0</span>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
       {products.loading ? (
         <Loading />
       ) : (products.data ?? []).length === 0 ? (
@@ -111,7 +182,7 @@ export const DashboardPage = () => {
         <div className="two-col section">
           <div className="card">
             <h2 className="card-title">
-              Téléchargements — {selectedId === "" ? "" : productName(selectedId)} (30 j)
+              Téléchargements — {selectedId === "" ? "" : productName(selectedId)} ({days} j)
             </h2>
             {downloads.loading ? (
               <Loading />
@@ -127,7 +198,7 @@ export const DashboardPage = () => {
           </div>
           <div className="card">
             <h2 className="card-title">
-              Trafic — {selectedId === "" ? "" : productName(selectedId)} (30 j)
+              Trafic — {selectedId === "" ? "" : productName(selectedId)} ({days} j)
             </h2>
             {traffic.loading ? (
               <Loading />

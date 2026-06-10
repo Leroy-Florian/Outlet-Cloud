@@ -494,3 +494,119 @@ textarea:focus {
   width: 100%;
   height: 260px;
 }
+
+/* ---- Badges (suite) ---- */
+
+.badge-violet {
+  color: #a78bfa;
+  border-color: rgba(167, 139, 250, 0.35);
+  background: rgba(167, 139, 250, 0.08);
+}
+
+/* ---- Sélecteur de période ---- */
+
+.period-selector {
+  display: inline-flex;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.period-option {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.period-option + .period-option {
+  border-left: 1px solid var(--border-strong);
+}
+
+.period-option:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.period-option.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* ---- Feedback ---- */
+
+.count-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.count-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--card);
+  color: var(--text-muted);
+  border-radius: 999px;
+  padding: 4px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.count-chip:hover {
+  background: var(--card-hover);
+  color: var(--text);
+}
+
+.count-chip.active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.count-chip strong {
+  font-variant-numeric: tabular-nums;
+}
+
+.feedback-message {
+  max-width: 420px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- Sidebar : badge de compteur ---- */
+
+.nav-count {
+  margin-left: auto;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 999px;
+  padding: 0 8px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 18px;
+  min-width: 18px;
+  text-align: center;
+}
+
+/* ---- Portefeuille ---- */
+
+.portfolio-row {
+  cursor: pointer;
+}
+
+.portfolio-row:hover td {
+  background: var(--card-hover);
+}
+
+/* ---- Pipeline (en-tête stats) ---- */
+
+.pipeline-stats {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}

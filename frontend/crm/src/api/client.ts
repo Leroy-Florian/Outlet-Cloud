@@ -83,8 +83,24 @@ export interface ProspectDto {
   readonly name: string
   readonly email: string
   readonly company: string | null
+  readonly estimatedValue: number | null
+  readonly estimatedValueCurrency: string | null
   readonly stage: string
+  readonly lossReason: string | null
   readonly createdAt: string
+}
+
+export interface ProspectStageStatsDto {
+  readonly stage: string
+  readonly count: number
+  readonly totalEstimatedValue: number
+  readonly conversionRateToNext: number | null
+}
+
+export interface ProspectPipelineStatsDto {
+  readonly totalProspects: number
+  readonly totalEstimatedValue: number
+  readonly stages: ReadonlyArray<ProspectStageStatsDto>
 }
 
 export interface PaymentDto {
@@ -153,14 +169,69 @@ export interface RepositoryTotalDto {
   readonly capturedAt: string
 }
 
+export type TrendDirection = "Flat" | "Up" | "Down"
+
+export interface PeriodComparisonDto {
+  readonly currentPeriod: number
+  readonly previousPeriod: number
+  readonly percentChange: number | null
+  readonly direction: TrendDirection
+}
+
 export interface AnalyticsSummaryDto {
   readonly totalDownloads: number
   readonly downloadsLast7Days: number
   readonly downloadsLast30Days: number
   readonly pageViewsLast7Days: number
   readonly pageViewsLast30Days: number
+  readonly periodDays: number
+  readonly downloads: PeriodComparisonDto
+  readonly pageViews: PeriodComparisonDto
   readonly packages: ReadonlyArray<PackageTotalDto>
   readonly repositories: ReadonlyArray<RepositoryTotalDto>
+}
+
+export interface PortfolioProductSummaryDto {
+  readonly productId: string
+  readonly name: string
+  readonly packageCount: number
+  readonly totalDownloads: number
+  readonly latestStars: number
+  readonly openFeedbackCount: number
+  readonly downloads: PeriodComparisonDto
+  readonly pageViews: PeriodComparisonDto
+}
+
+export interface PortfolioSummaryDto {
+  readonly periodDays: number
+  readonly products: ReadonlyArray<PortfolioProductSummaryDto>
+}
+
+export type FeedbackStatus = "New" | "Triaged" | "Resolved" | "Dismissed"
+export type FeedbackCategory = "Bug" | "FeatureRequest" | "Question" | "Other"
+
+export interface FeedbackItemDto {
+  readonly id: string
+  readonly productId: string
+  readonly category: string
+  readonly message: string
+  readonly reporterEmail: string | null
+  readonly sourceApp: string
+  readonly status: string
+  readonly receivedAt: string
+}
+
+export interface FeedbackCountsDto {
+  readonly new: number
+  readonly triaged: number
+  readonly resolved: number
+  readonly dismissed: number
+  readonly total: number
+}
+
+export interface FeedbackInboxDto {
+  readonly items: ReadonlyArray<FeedbackItemDto>
+  readonly counts: FeedbackCountsDto
 }
 
 export interface SnapshotCaptureReportDto {
@@ -241,8 +312,15 @@ export const getDailyTraffic = (productId: string, from?: string, to?: string) =
     `/api/products/${productId}/analytics/traffic/daily${rangeQuery(from, to)}`,
   )
 
-export const getAnalyticsSummary = (productId: string) =>
-  getJson<AnalyticsSummaryDto>(`/api/products/${productId}/analytics/summary`)
+export const getAnalyticsSummary = (productId: string, days?: number) =>
+  getJson<AnalyticsSummaryDto>(
+    `/api/products/${productId}/analytics/summary${days === undefined ? "" : `?days=${days}`}`,
+  )
+
+export const getPortfolio = (days?: number) =>
+  getJson<PortfolioSummaryDto>(
+    `/api/analytics/portfolio${days === undefined ? "" : `?days=${days}`}`,
+  )
 
 export const getDownloadTrend = (productId: string, registry: string, packageId: string) =>
   getJson<ReadonlyArray<DownloadTrendPointDto>>(
@@ -276,6 +354,46 @@ export const createProspect = (input: CreateProspectInput) =>
 
 export const advanceProspectStage = (prospectId: string, target: string) =>
   sendJson<void>("POST", `/api/prospects/${prospectId}/stage?target=${target}`)
+
+export interface UpdateProspectInput {
+  readonly estimatedValue: number | null
+  readonly estimatedValueCurrency: string | null
+  readonly company: string | null
+}
+
+export const updateProspect = (prospectId: string, input: UpdateProspectInput) =>
+  sendJson<void>("PATCH", `/api/prospects/${prospectId}`, input)
+
+export const getProspectPipelineStats = () =>
+  getJson<ProspectPipelineStatsDto>("/api/prospects/stats")
+
+// ---------------------------------------------------------------------------
+// Feedback
+// ---------------------------------------------------------------------------
+
+export interface FeedbackFilters {
+  readonly productId?: string | undefined
+  readonly status?: FeedbackStatus | undefined
+  readonly category?: FeedbackCategory | undefined
+}
+
+export const getFeedbackInbox = (filters: FeedbackFilters = {}) => {
+  const params = new URLSearchParams()
+  if (filters.productId !== undefined) params.set("productId", filters.productId)
+  if (filters.status !== undefined) params.set("status", filters.status)
+  if (filters.category !== undefined) params.set("category", filters.category)
+  const query = params.toString()
+  return getJson<FeedbackInboxDto>(`/api/feedback/${query === "" ? "" : `?${query}`}`)
+}
+
+export const triageFeedback = (feedbackId: string) =>
+  sendJson<void>("POST", `/api/feedback/${feedbackId}/triage`)
+
+export const resolveFeedback = (feedbackId: string) =>
+  sendJson<void>("POST", `/api/feedback/${feedbackId}/resolve`)
+
+export const dismissFeedback = (feedbackId: string) =>
+  sendJson<void>("POST", `/api/feedback/${feedbackId}/dismiss`)
 
 export const listPayments = () => getJson<ReadonlyArray<PaymentDto>>("/api/payments/")
 

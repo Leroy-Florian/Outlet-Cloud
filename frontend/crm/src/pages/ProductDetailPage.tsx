@@ -19,9 +19,11 @@ import {
   EmptyState,
   ErrorBanner,
   Loading,
+  PeriodSelector,
   StatCard,
+  TrendBadge,
   formatNumber,
-  last30DaysRange,
+  lastDaysRange,
 } from "../components/ui"
 import {
   DailyDownloadsChart,
@@ -200,10 +202,11 @@ export const ProductDetailPage = () => {
   const products = useQuery(listProducts, [])
   const product = products.data?.find((p) => p.id === id) ?? null
 
-  const range = useMemo(last30DaysRange, [])
-  const summary = useQuery(() => getAnalyticsSummary(id), [id])
-  const downloads = useQuery(() => getDailyDownloads(id, range.from, range.to), [id])
-  const traffic = useQuery(() => getDailyTraffic(id, range.from, range.to), [id])
+  const [days, setDays] = useState(30)
+  const range = useMemo(() => lastDaysRange(days), [days])
+  const summary = useQuery(() => getAnalyticsSummary(id, days), [id, days])
+  const downloads = useQuery(() => getDailyDownloads(id, range.from, range.to), [id, range])
+  const traffic = useQuery(() => getDailyTraffic(id, range.from, range.to), [id, range])
 
   const [capturing, setCapturing] = useState(false)
   const [captureNotice, setCaptureNotice] = useState<string | null>(null)
@@ -260,9 +263,12 @@ export const ProductDetailPage = () => {
           <h1 className="page-title">{product.name}</h1>
           <p className="page-subtitle">{product.description ?? "Analytics produit"}</p>
         </div>
-        <button className="btn btn-primary" disabled={capturing} onClick={() => void handleCapture()}>
-          {capturing ? "Capture en cours…" : "Capturer un snapshot"}
-        </button>
+        <div style={{ display: "flex", gap: 16, alignItems: "center" }}>
+          <PeriodSelector value={days} onChange={setDays} />
+          <button className="btn btn-primary" disabled={capturing} onClick={() => void handleCapture()}>
+            {capturing ? "Capture en cours…" : "Capturer un snapshot"}
+          </button>
+        </div>
       </header>
 
       {captureNotice !== null ? <div className="notice-banner">{captureNotice}</div> : null}
@@ -279,14 +285,24 @@ export const ProductDetailPage = () => {
             value={formatNumber(summary.data.totalDownloads)}
           />
           <StatCard
-            label="Téléchargements 7 j"
-            value={formatNumber(summary.data.downloadsLast7Days)}
-            hint={`30 j : ${formatNumber(summary.data.downloadsLast30Days)}`}
+            label={`Téléchargements ${summary.data.periodDays} j`}
+            value={
+              <>
+                {formatNumber(summary.data.downloads.currentPeriod)}{" "}
+                <TrendBadge comparison={summary.data.downloads} />
+              </>
+            }
+            hint={`7 j : ${formatNumber(summary.data.downloadsLast7Days)} · 30 j : ${formatNumber(summary.data.downloadsLast30Days)}`}
           />
           <StatCard
-            label="Trafic 7 j"
-            value={formatNumber(summary.data.pageViewsLast7Days)}
-            hint={`30 j : ${formatNumber(summary.data.pageViewsLast30Days)}`}
+            label={`Trafic ${summary.data.periodDays} j`}
+            value={
+              <>
+                {formatNumber(summary.data.pageViews.currentPeriod)}{" "}
+                <TrendBadge comparison={summary.data.pageViews} />
+              </>
+            }
+            hint={`7 j : ${formatNumber(summary.data.pageViewsLast7Days)} · 30 j : ${formatNumber(summary.data.pageViewsLast30Days)}`}
           />
           <StatCard
             label="Stars GitHub"
@@ -300,7 +316,7 @@ export const ProductDetailPage = () => {
       ) : null}
 
       <div className="card section">
-        <h2 className="card-title">Nouveaux téléchargements par jour (30 j, par source)</h2>
+        <h2 className="card-title">Nouveaux téléchargements par jour ({days} j, par source)</h2>
         {downloads.loading ? (
           <Loading />
         ) : downloads.error !== null ? (
@@ -316,7 +332,7 @@ export const ProductDetailPage = () => {
       </div>
 
       <div className="card section">
-        <h2 className="card-title">Trafic quotidien (30 j)</h2>
+        <h2 className="card-title">Trafic quotidien ({days} j)</h2>
         {traffic.loading ? (
           <Loading />
         ) : traffic.error !== null ? (

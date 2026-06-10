@@ -2,7 +2,6 @@ using Outlet.Crm.Application.Alerts;
 using Outlet.Crm.Application.Analytics;
 using Outlet.Crm.Application.ApiMetrics;
 using Outlet.Crm.Application.Feedback;
-using Outlet.Crm.Application.Invoices;
 using Outlet.Crm.Application.Objectives;
 using Outlet.Crm.Application.Organizations;
 using Outlet.Crm.Application.Payments;
@@ -13,7 +12,6 @@ using Outlet.Crm.Application.Traffic;
 using Outlet.Crm.Domain.Alerts;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.Feedback;
-using Outlet.Crm.Domain.Invoices;
 using Outlet.Crm.Domain.Objectives;
 using Outlet.Crm.Domain.Prospects;
 using Outlet.Kernel.Shared;
@@ -149,25 +147,6 @@ public static class CrmEndpoints
                     o.ProgressPercent,
                 }),
             })));
-
-        var invoices = api.MapGroup("/invoices");
-
-        invoices.MapPost("/", async (CreateInvoiceCommand command, CreateInvoiceUseCase useCase, CancellationToken ct) =>
-            ToHttp(await useCase.HandleAsync(command, ct), created =>
-                Results.Created($"/api/invoices/{created.Id}", new { id = created.Id, invoiceNumber = created.InvoiceNumber })));
-
-        invoices.MapGet("/", async (InvoiceStatus? status, GetInvoicesUseCase useCase, CancellationToken ct) =>
-            ToHttp(await useCase.HandleAsync(new GetInvoicesQuery(status), ct), items =>
-                Results.Ok(items.Select(ToInvoiceResponse))));
-
-        invoices.MapPost("/{id:guid}/issue", async (Guid id, IssueInvoiceUseCase useCase, CancellationToken ct) =>
-            ToHttp(await useCase.HandleAsync(new IssueInvoiceCommand(new InvoiceId(id)), ct)));
-
-        invoices.MapPost("/{id:guid}/pay", async (Guid id, PayInvoiceRequest? request, MarkInvoicePaidUseCase useCase, CancellationToken ct) =>
-            ToHttp(await useCase.HandleAsync(new MarkInvoicePaidCommand(new InvoiceId(id), request?.PaymentId), ct)));
-
-        invoices.MapPost("/{id:guid}/cancel", async (Guid id, CancelInvoiceUseCase useCase, CancellationToken ct) =>
-            ToHttp(await useCase.HandleAsync(new CancelInvoiceCommand(new InvoiceId(id)), ct)));
 
         var organizations = api.MapGroup("/organizations");
 
@@ -365,30 +344,7 @@ public static class CrmEndpoints
 
     private sealed record LoseProspectRequest(string Reason);
 
-    private sealed record PayInvoiceRequest(Guid? PaymentId);
 
-    private static object ToInvoiceResponse(Invoice invoice) => new
-    {
-        id = invoice.Id.Value,
-        invoice.InvoiceNumber,
-        invoice.CustomerName,
-        customerEmail = invoice.CustomerEmail?.Value,
-        invoice.CustomerAddress,
-        status = invoice.Status.ToString(),
-        invoice.Currency,
-        invoice.Total,
-        lines = invoice.Lines.Select(l => new
-        {
-            l.Description,
-            l.Quantity,
-            unitPrice = l.UnitPrice.Amount,
-            l.LineTotal,
-        }),
-        invoice.CreatedAt,
-        invoice.IssuedAt,
-        invoice.PaidAt,
-        invoice.PaymentId,
-    };
 
     private static IResult ToHttp(Result result) =>
         result.IsSuccess ? Results.NoContent() : ToProblem(result.Error!);

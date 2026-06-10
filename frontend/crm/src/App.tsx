@@ -9,7 +9,6 @@ import { ProductDetailPage } from "./pages/ProductDetailPage"
 import { ProductsPage } from "./pages/ProductsPage"
 import { ProspectsPage } from "./pages/ProspectsPage"
 import { ObjectivesPage } from "./pages/ObjectivesPage"
-import { InvoicesPage } from "./pages/InvoicesPage"
 
 export const App = () => (
   <BrowserRouter>
@@ -22,7 +21,6 @@ export const App = () => (
         <Route path="/paiements" element={<PaymentsPage />} />
         <Route path="/revenus" element={<RevenuePage />} />
         <Route path="/objectifs" element={<ObjectivesPage />} />
-        <Route path="/factures" element={<InvoicesPage />} />
         <Route path="/alertes" element={<AlertsPage />} />
         <Route path="/feedback" element={<FeedbackPage />} />
       </Route>

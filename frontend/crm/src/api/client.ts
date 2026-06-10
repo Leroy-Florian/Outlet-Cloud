@@ -296,30 +296,8 @@ export interface ObjectivesProgressDto {
   readonly objectives: ReadonlyArray<ObjectiveProgressDto>
 }
 
-export type InvoiceStatus = "Draft" | "Issued" | "Paid" | "Cancelled"
 
-export interface InvoiceLineDto {
-  readonly description: string
-  readonly quantity: number
-  readonly unitPrice: number
-  readonly lineTotal: number
-}
 
-export interface InvoiceDto {
-  readonly id: string
-  readonly invoiceNumber: string
-  readonly customerName: string
-  readonly customerEmail: string | null
-  readonly customerAddress: string | null
-  readonly status: string
-  readonly currency: string
-  readonly total: number
-  readonly lines: ReadonlyArray<InvoiceLineDto>
-  readonly createdAt: string
-  readonly issuedAt: string | null
-  readonly paidAt: string | null
-  readonly paymentId: string | null
-}
 
 // ---------------------------------------------------------------------------
 // Produits
@@ -585,33 +563,9 @@ export const getObjectivesProgress = (month?: string) =>
 // Factures
 // ---------------------------------------------------------------------------
 
-export interface InvoiceLineInput {
-  readonly description: string
-  readonly quantity: number
-  readonly unitPrice: number
-  readonly currency: string
-}
 
-export interface CreateInvoiceInput {
-  readonly customerName: string
-  readonly customerEmail: string | null
-  readonly customerAddress: string | null
-  readonly lines: ReadonlyArray<InvoiceLineInput>
-}
 
-export const createInvoice = (input: CreateInvoiceInput) =>
-  sendJson<{ id: string; invoiceNumber: string }>("POST", "/api/invoices/", input)
 
-export const listInvoices = (status?: InvoiceStatus) =>
-  getJson<ReadonlyArray<InvoiceDto>>(
-    `/api/invoices/${status === undefined ? "" : `?status=${status}`}`,
-  )
 
-export const issueInvoice = (invoiceId: string) =>
-  sendJson<void>("POST", `/api/invoices/${invoiceId}/issue`)
 
-export const payInvoice = (invoiceId: string, paymentId: string | null) =>
-  sendJson<void>("POST", `/api/invoices/${invoiceId}/pay`, { paymentId })
 
-export const cancelInvoice = (invoiceId: string) =>
-  sendJson<void>("POST", `/api/invoices/${invoiceId}/cancel`)

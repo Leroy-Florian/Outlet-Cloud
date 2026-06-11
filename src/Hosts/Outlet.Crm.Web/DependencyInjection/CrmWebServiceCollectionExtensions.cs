@@ -44,6 +44,7 @@ public static class CrmWebServiceCollectionExtensions
         services.AddScoped<RecordTrafficEventUseCase>();
         services.AddScoped<GetDailyTrafficUseCase>();
         services.AddScoped<RecordPaymentUseCase>();
+        services.AddScoped<ProcessBillingEventUseCase>();
         services.AddScoped<SettlePaymentUseCase>();
         services.AddScoped<GetPortfolioUseCase>();
         services.AddScoped<UpdateProspectUseCase>();

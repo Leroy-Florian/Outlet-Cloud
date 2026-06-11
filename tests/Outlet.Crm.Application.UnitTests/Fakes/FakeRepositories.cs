@@ -143,6 +143,9 @@ public sealed class FakePaymentRepository : IPaymentRepository
     public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         Task.FromResult(Items.FirstOrDefault(p => p.Id == id));
 
+    public Task<Payment?> FindByExternalReferenceAsync(string externalReference, CancellationToken cancellationToken = default) =>
+        Task.FromResult(Items.FirstOrDefault(p => p.ExternalReference == externalReference));
+
     public Task<IReadOnlyList<Payment>> ListAsync(CancellationToken cancellationToken = default) =>
         Task.FromResult<IReadOnlyList<Payment>>(Items);
 

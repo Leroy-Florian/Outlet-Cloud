@@ -292,6 +292,40 @@ public static class CrmEndpoints
         payments.MapPost("/{id:guid}/settle", async (Guid id, SettlePaymentUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new SettlePaymentCommand(id), ct)));
 
+        api.MapPost("/webhooks/billing", async (
+            HttpRequest request,
+            BillingWebhookRequest body,
+            IConfiguration configuration,
+            ProcessBillingEventUseCase useCase,
+            CancellationToken ct) =>
+        {
+            var secret = configuration["Crm:BillingWebhookSecret"];
+            if (!string.IsNullOrEmpty(secret) && request.Headers["X-Webhook-Secret"] != secret)
+            {
+                return Results.Unauthorized();
+            }
+
+            var result = await useCase.HandleAsync(
+                new ProcessBillingEventCommand(
+                    body.ExternalReference ?? string.Empty,
+                    body.ProductId,
+                    body.Amount,
+                    body.Currency ?? string.Empty,
+                    body.IsRecurring,
+                    body.Status),
+                ct);
+
+            return ToHttp(result, outcome => Results.Ok(new
+            {
+                outcome = outcome switch
+                {
+                    BillingEventOutcome.AlreadyProcessed => "alreadyProcessed",
+                    BillingEventOutcome.Refunded => "refunded",
+                    _ => "recorded",
+                },
+            }));
+        });
+
         api.MapGet("/revenue/metrics", async (int? months, GetRevenueMetricsUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new GetRevenueMetricsQuery(months), ct), report => Results.Ok(new
             {
@@ -343,6 +377,14 @@ public static class CrmEndpoints
     private sealed record UpdateProspectRequest(decimal? EstimatedValue, string? EstimatedValueCurrency, string? Company);
 
     private sealed record LoseProspectRequest(string Reason);
+
+    private sealed record BillingWebhookRequest(
+        string? ExternalReference,
+        Guid ProductId,
+        decimal Amount,
+        string? Currency,
+        bool? IsRecurring = null,
+        string? Status = null);
 
 
 

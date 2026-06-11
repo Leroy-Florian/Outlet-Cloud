@@ -47,4 +47,25 @@ public sealed class GetRevenueMetricsUseCaseTests
         report.MonthlyRecurringRevenue.Should().Be(49m);
         report.CurrencyTotals.Should().ContainSingle().Which.Should().Be(new CurrencyTotal("EUR", 49m));
     }
+
+    [Fact]
+    public async Task Should_ExcludeRefundedPayments_When_ComputingRevenue()
+    {
+        var settled = Payment.Create(
+            ProductId.New(), null, Money.Create(49m, "EUR").Value!, "stripe", "pi_1", Now, isRecurring: true).Value!;
+        settled.Settle();
+        var refunded = Payment.Create(
+            ProductId.New(), null, Money.Create(99m, "EUR").Value!, "stripe", "pi_2", Now, isRecurring: true).Value!;
+        refunded.Settle();
+        refunded.Refund();
+        _payments.Items.Add(settled);
+        _payments.Items.Add(refunded);
+
+        var result = await UseCase.HandleAsync(new GetRevenueMetricsQuery(3), CancellationToken.None);
+
+        var report = result.Value!;
+        report.Series[^1].Total.Should().Be(49m);
+        report.MonthlyRecurringRevenue.Should().Be(49m);
+        report.CurrencyTotals.Should().ContainSingle().Which.Should().Be(new CurrencyTotal("EUR", 49m));
+    }
 }

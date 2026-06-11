@@ -10,6 +10,9 @@ public sealed class EfPaymentRepository(CrmDbContext db) : IPaymentRepository
     public Task<Payment?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
         db.Payments.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
+    public Task<Payment?> FindByExternalReferenceAsync(string externalReference, CancellationToken cancellationToken = default) =>
+        db.Payments.FirstOrDefaultAsync(p => p.ExternalReference == externalReference, cancellationToken);
+
     public async Task<IReadOnlyList<Payment>> ListAsync(CancellationToken cancellationToken = default) =>
         await db.Payments.AsNoTracking().OrderByDescending(p => p.CreatedAt).ToListAsync(cancellationToken);
 

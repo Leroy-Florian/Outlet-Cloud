@@ -1,0 +1,26 @@
+---
+// Privacy-friendly traffic beacon: reports one page view (path + referrer host) to the
+// CRM traffic endpoint. No cookies, no fingerprinting, no-op unless both PUBLIC_TRAFFIC_*
+// variables are set at build time.
+const endpoint = import.meta.env.PUBLIC_TRAFFIC_ENDPOINT
+const productId = import.meta.env.PUBLIC_TRAFFIC_PRODUCT_ID
+---
+
+{
+  endpoint && productId && (
+    <script is:inline define:vars={{ endpoint, productId }}>
+      try {
+        const payload = JSON.stringify({
+          productId,
+          path: location.pathname,
+          referrer: document.referrer || null,
+        })
+        if (!navigator.sendBeacon || !navigator.sendBeacon(endpoint, new Blob([payload], { type: 'application/json' }))) {
+          fetch(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: payload, keepalive: true }).catch(() => {})
+        }
+      } catch {
+        /* analytics must never break the page */
+      }
+    </script>
+  )
+}

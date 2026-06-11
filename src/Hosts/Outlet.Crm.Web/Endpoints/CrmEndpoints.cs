@@ -8,6 +8,7 @@ using Outlet.Crm.Application.Payments;
 using Outlet.Crm.Application.Products;
 using Outlet.Crm.Application.Ports;
 using Outlet.Crm.Application.Prospects;
+using Outlet.Crm.Application.Releases;
 using Outlet.Crm.Application.Traffic;
 using Outlet.Crm.Domain.Alerts;
 using Outlet.Crm.Domain.Analytics;
@@ -24,7 +25,7 @@ namespace Outlet.Crm.Web.Endpoints;
 /// </summary>
 public static class CrmEndpoints
 {
-    public static void MapOutletCrm(this IEndpointRouteBuilder app)
+    public static void MapOutletCrm(this IEndpointRouteBuilder app, string? publicIngestCorsPolicy = null)
     {
         var api = app.MapGroup("/api");
 
@@ -82,6 +83,30 @@ public static class CrmEndpoints
 
         products.MapPost("/{productId:guid}/snapshots", async (Guid productId, CaptureProductSnapshotsUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new CaptureProductSnapshotsCommand(productId), ct), Results.Ok));
+
+        products.MapGet("/{productId:guid}/releases", async (Guid productId, GetReleasesUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new GetReleasesQuery(productId), ct), releases =>
+                Results.Ok(releases.Select(r => new
+                {
+                    id = r.Id.Value,
+                    repository = r.Repository.FullName,
+                    r.TagName,
+                    r.Name,
+                    r.PublishedAt,
+                }))));
+
+        products.MapPost("/{productId:guid}/releases/sync", async (Guid productId, SyncReleasesUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new SyncReleasesCommand(productId), ct), summary => Results.Ok(new
+            {
+                summary.NewReleases,
+                targets = summary.Targets.Select(t => new
+                {
+                    t.Repository,
+                    t.Succeeded,
+                    t.NewReleases,
+                    t.Error,
+                }),
+            })));
 
         products.MapGet("/{productId:guid}/packages/{registry}/{packageId}/trend",
             async (Guid productId, PackageRegistry registry, string packageId, GetDownloadTrendUseCase useCase, CancellationToken ct) =>
@@ -223,8 +248,24 @@ public static class CrmEndpoints
 
         var feedback = api.MapGroup("/feedback");
 
-        feedback.MapPost("/", async (SubmitFeedbackCommand command, SubmitFeedbackUseCase useCase, CancellationToken ct) =>
+        var submitFeedback = feedback.MapPost("/", async (SubmitFeedbackCommand command, SubmitFeedbackUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(command, ct), id => Results.Created($"/api/feedback/{id.Value}", new { id = id.Value })));
+
+        if (publicIngestCorsPolicy is not null)
+        {
+            submitFeedback.RequireCors(publicIngestCorsPolicy);
+        }
+
+        feedback.MapGet("/nps", async (Guid? productId, int? days, GetNpsUseCase useCase, CancellationToken ct) =>
+            ToHttp(await useCase.HandleAsync(new GetNpsQuery(productId, days), ct), report => Results.Ok(new
+            {
+                nps = report.Score,
+                report.Promoters,
+                report.Passives,
+                report.Detractors,
+                report.Total,
+                report.Days,
+            })));
 
         feedback.MapGet("/", async (Guid? productId, FeedbackStatus? status, FeedbackCategory? category, GetFeedbackInboxUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(new GetFeedbackInboxQuery(productId, status, category), ct), inbox => Results.Ok(new
@@ -237,6 +278,7 @@ public static class CrmEndpoints
                     f.Message,
                     reporterEmail = f.ReporterEmail?.Value,
                     f.SourceApp,
+                    f.Score,
                     status = f.Status.ToString(),
                     f.ReceivedAt,
                 }),
@@ -261,8 +303,13 @@ public static class CrmEndpoints
 
         var traffic = api.MapGroup("/traffic");
 
-        traffic.MapPost("/", async (RecordTrafficEventCommand command, RecordTrafficEventUseCase useCase, CancellationToken ct) =>
+        var recordTraffic = traffic.MapPost("/", async (RecordTrafficEventCommand command, RecordTrafficEventUseCase useCase, CancellationToken ct) =>
             ToHttp(await useCase.HandleAsync(command, ct)));
+
+        if (publicIngestCorsPolicy is not null)
+        {
+            recordTraffic.RequireCors(publicIngestCorsPolicy);
+        }
 
         var metrics = api.MapGroup("/metrics");
 

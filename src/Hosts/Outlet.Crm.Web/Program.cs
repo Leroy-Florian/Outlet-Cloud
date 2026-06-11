@@ -38,6 +38,20 @@ builder.Services.AddOutletCrmStatsClients(new CrmStatsOptions
     GitHubToken = builder.Configuration["GitHub:Token"],
 });
 
+// CORS for the public ingestion endpoints only (the Astro website beacon posts
+// cross-origin). Opt-in: no "Crm:PublicIngestOrigins" → no CORS at all.
+const string publicIngestCorsPolicy = "PublicIngest";
+string[] publicIngestOrigins = builder.Configuration["Crm:PublicIngestOrigins"]?
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries) ?? [];
+
+if (publicIngestOrigins.Length > 0)
+{
+    builder.Services.AddCors(options => options.AddPolicy(publicIngestCorsPolicy, policy => policy
+        .WithOrigins(publicIngestOrigins)
+        .WithMethods("POST")
+        .AllowAnyHeader()));
+}
+
 builder.Services.AddOutletCrmWeb();
 builder.Services.AddHostedService<Outlet.Crm.Web.Workers.SnapshotCaptureWorker>();
 builder.Services.ConfigureHttpJsonOptions(options =>
@@ -51,8 +65,13 @@ if (useSqlite)
     scope.ServiceProvider.GetRequiredService<CrmDbContext>().Database.EnsureCreated();
 }
 
+if (publicIngestOrigins.Length > 0)
+{
+    app.UseCors();
+}
+
 app.MapGet("/health", () => Results.Ok(new { status = "ok" }));
-app.MapOutletCrm();
+app.MapOutletCrm(publicIngestOrigins.Length > 0 ? publicIngestCorsPolicy : null);
 
 app.Run();
 

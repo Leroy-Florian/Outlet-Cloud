@@ -11,7 +11,8 @@ public sealed record SubmitFeedbackCommand(
     FeedbackCategory Category,
     string Message,
     string? ReporterEmail,
-    string? SourceApp);
+    string? SourceApp,
+    int? Score = null);
 
 /// <summary>
 /// Public ingestion: a user's app submits feedback that lands as a New inbox
@@ -44,7 +45,7 @@ public sealed class SubmitFeedbackUseCase(
         }
 
         var feedback = Domain.Feedback.Feedback.Create(
-            productId, command.Category, command.Message, reporterEmail, command.SourceApp, clock.UtcNow);
+            productId, command.Category, command.Message, reporterEmail, command.SourceApp, command.Score, clock.UtcNow);
         if (feedback.IsFailure)
         {
             return Result.Failure<FeedbackId>(feedback.Error!);

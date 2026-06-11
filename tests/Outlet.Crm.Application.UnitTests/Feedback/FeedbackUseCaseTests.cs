@@ -50,6 +50,45 @@ public sealed class FeedbackUseCaseTests
     }
 
     [Fact]
+    public async Task Should_StoreScore_When_SubmittedWithScore()
+    {
+        var product = AddProduct();
+        var useCase = new SubmitFeedbackUseCase(_feedback, _products, _clock);
+
+        var result = await useCase.HandleAsync(new SubmitFeedbackCommand(
+            product.Id.Value, FeedbackCategory.Other, "Love it", null, null, 9));
+
+        result.IsSuccess.Should().BeTrue();
+        _feedback.Items.Single().Score.Should().Be(9);
+    }
+
+    [Fact]
+    public async Task Should_KeepNullScore_When_SubmittedWithoutScore()
+    {
+        var product = AddProduct();
+        var useCase = new SubmitFeedbackUseCase(_feedback, _products, _clock);
+
+        await useCase.HandleAsync(new SubmitFeedbackCommand(
+            product.Id.Value, FeedbackCategory.Bug, "It crashes", null, null));
+
+        _feedback.Items.Single().Score.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task Should_Fail_When_ScoreIsOutOfRange()
+    {
+        var product = AddProduct();
+        var useCase = new SubmitFeedbackUseCase(_feedback, _products, _clock);
+
+        var result = await useCase.HandleAsync(new SubmitFeedbackCommand(
+            product.Id.Value, FeedbackCategory.Other, "Meh", null, null, 11));
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(FeedbackErrors.ScoreOutOfRange);
+        _feedback.Items.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task Should_Fail_When_SubmittingForUnknownProduct()
     {
         var useCase = new SubmitFeedbackUseCase(_feedback, _products, _clock);

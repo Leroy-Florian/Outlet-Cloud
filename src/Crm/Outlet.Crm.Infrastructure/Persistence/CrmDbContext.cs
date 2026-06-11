@@ -8,6 +8,7 @@ using Outlet.Crm.Domain.Organizations;
 using Outlet.Crm.Domain.Payments;
 using Outlet.Crm.Domain.Products;
 using Outlet.Crm.Domain.Prospects;
+using Outlet.Crm.Domain.Releases;
 using Outlet.Crm.Domain.Traffic;
 
 namespace Outlet.Crm.Infrastructure.Persistence;
@@ -36,6 +37,8 @@ public sealed class CrmDbContext(DbContextOptions<CrmDbContext> options) : DbCon
     public DbSet<Alert> Alerts => Set<Alert>();
 
     public DbSet<Objective> Objectives => Set<Objective>();
+
+    public DbSet<ReleaseRecord> Releases => Set<ReleaseRecord>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder) =>

@@ -169,13 +169,15 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Success(new RepoStats(3, 42, 7))),
             downloads,
             repos,
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        result.Value!.Should().HaveCount(3);
+        result.Value!.Should().HaveCount(4);
         result.Value!.Should().OnlyContain(report => report.Succeeded);
+        result.Value!.Select(r => r.Target).Should().Contain("releases:Leroy-Florian/Accordent");
         downloads.Items.Should().HaveCount(2);
         repos.Items.Should().ContainSingle().Which.OpenIssues.Should().Be(3);
     }
@@ -196,6 +198,7 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Success(new RepoStats(1, 2, 3))),
             downloads,
             repos,
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
@@ -221,6 +224,7 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0))),
             downloads,
             new FakeRepositorySnapshotRepository(),
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
@@ -230,6 +234,67 @@ public sealed class ProductUseCaseTests
         report.Succeeded.Should().BeFalse();
         report.Error.Should().StartWith("DownloadSnapshot.NegativeCount:");
         downloads.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task Should_RecordNewReleases_When_CapturingSnapshots()
+    {
+        var product = Product.Create("Outlet", null, Now).Value!;
+        product.TrackRepository(RepositoryName.Create("Leroy-Florian/Outlet-CLI").Value!);
+        _products.Items.Add(product);
+
+        var releases = new FakeReleaseRepository();
+        var client = new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0)))
+        {
+            ReleasesResult = Result.Success<IReadOnlyList<RepoRelease>>(
+                [new RepoRelease("v1.0.0", "One", Now)]),
+        };
+        var useCase = new CaptureProductSnapshotsUseCase(
+            _products,
+            new FakePackageStatsClient(Result.Success(1L)),
+            client,
+            new FakeDownloadSnapshotRepository(),
+            new FakeRepositorySnapshotRepository(),
+            releases,
+            new FixedClock(Now));
+
+        var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var report = result.Value!.Should().ContainSingle(r => r.Target == "releases:Leroy-Florian/Outlet-CLI").Subject;
+        report.Succeeded.Should().BeTrue();
+        report.Error.Should().BeNull();
+        releases.Items.Should().ContainSingle().Which.TagName.Should().Be("v1.0.0");
+    }
+
+    [Fact]
+    public async Task Should_ReportReleaseSyncFailure_When_ReleaseFetchFails()
+    {
+        var product = Product.Create("Outlet", null, Now).Value!;
+        product.TrackRepository(RepositoryName.Create("Leroy-Florian/Outlet-CLI").Value!);
+        _products.Items.Add(product);
+
+        var releases = new FakeReleaseRepository();
+        var client = new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0)))
+        {
+            ReleasesResult = Result.Failure<IReadOnlyList<RepoRelease>>("GitHubStats.HttpError: boom"),
+        };
+        var useCase = new CaptureProductSnapshotsUseCase(
+            _products,
+            new FakePackageStatsClient(Result.Success(1L)),
+            client,
+            new FakeDownloadSnapshotRepository(),
+            new FakeRepositorySnapshotRepository(),
+            releases,
+            new FixedClock(Now));
+
+        var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        var report = result.Value!.Should().ContainSingle(r => r.Target == "releases:Leroy-Florian/Outlet-CLI").Subject;
+        report.Succeeded.Should().BeFalse();
+        report.Error.Should().Be("GitHubStats.HttpError: boom");
+        releases.Items.Should().BeEmpty();
     }
 
     [Fact]
@@ -246,14 +311,14 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Failure<RepoStats>("GitHubStats.HttpError: boom")),
             new FakeDownloadSnapshotRepository(),
             repos,
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var report = result.Value!.Should().ContainSingle().Subject;
+        var report = result.Value!.Should().ContainSingle(r => !r.Succeeded).Subject;
         report.Target.Should().Be("github:Leroy-Florian/Outlet-CLI");
-        report.Succeeded.Should().BeFalse();
         report.Error.Should().StartWith("GitHubStats.HttpError:");
         repos.Items.Should().BeEmpty();
     }
@@ -272,13 +337,13 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Success(new RepoStats(-1, 2, 3))),
             new FakeDownloadSnapshotRepository(),
             repos,
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
 
         result.IsSuccess.Should().BeTrue();
-        var report = result.Value!.Should().ContainSingle().Subject;
-        report.Succeeded.Should().BeFalse();
+        var report = result.Value!.Should().ContainSingle(r => !r.Succeeded).Subject;
         report.Error.Should().StartWith("RepositorySnapshot.NegativeCount:");
         repos.Items.Should().BeEmpty();
     }
@@ -292,6 +357,7 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0))),
             new FakeDownloadSnapshotRepository(),
             new FakeRepositorySnapshotRepository(),
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(Guid.NewGuid()), CancellationToken.None);
@@ -318,6 +384,7 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0))),
             downloads,
             new FakeRepositorySnapshotRepository(),
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);
@@ -340,6 +407,7 @@ public sealed class ProductUseCaseTests
             new FakeRepoStatsClient(Result.Success(new RepoStats(0, 0, 0))),
             downloads,
             new FakeRepositorySnapshotRepository(),
+            new FakeReleaseRepository(),
             new FixedClock(Now));
 
         var result = await useCase.HandleAsync(new CaptureProductSnapshotsCommand(product.Id.Value), CancellationToken.None);

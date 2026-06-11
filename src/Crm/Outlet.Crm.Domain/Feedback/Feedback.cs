@@ -21,6 +21,7 @@ public sealed class Feedback : AggregateRoot<FeedbackId>
         string message,
         Email? reporterEmail,
         string? sourceApp,
+        int? score,
         DateTime receivedAt)
         : base(id)
     {
@@ -29,6 +30,7 @@ public sealed class Feedback : AggregateRoot<FeedbackId>
         Message = message;
         ReporterEmail = reporterEmail;
         SourceApp = sourceApp;
+        Score = score;
         ReceivedAt = receivedAt;
         Status = FeedbackStatus.New;
     }
@@ -44,6 +46,9 @@ public sealed class Feedback : AggregateRoot<FeedbackId>
     /// <summary>Free-form origin tag supplied by the client, e.g. "outlet-cli@1.2.0".</summary>
     public string? SourceApp { get; }
 
+    /// <summary>Optional 0-10 satisfaction score (NPS scale), independent of the category.</summary>
+    public int? Score { get; }
+
     public FeedbackStatus Status { get; private set; }
 
     public DateTime ReceivedAt { get; }
@@ -54,8 +59,23 @@ public sealed class Feedback : AggregateRoot<FeedbackId>
         string message,
         Email? reporterEmail,
         string? sourceApp,
+        DateTime receivedAt) =>
+        Create(productId, category, message, reporterEmail, sourceApp, null, receivedAt);
+
+    public static Result<Feedback> Create(
+        ProductId productId,
+        FeedbackCategory category,
+        string message,
+        Email? reporterEmail,
+        string? sourceApp,
+        int? score,
         DateTime receivedAt)
     {
+        if (score is < 0 or > 10)
+        {
+            return Result.Failure<Feedback>(FeedbackErrors.ScoreOutOfRange);
+        }
+
         if (string.IsNullOrWhiteSpace(message))
         {
             return Result.Failure<Feedback>(FeedbackErrors.MessageRequired);
@@ -75,6 +95,7 @@ public sealed class Feedback : AggregateRoot<FeedbackId>
             trimmedMessage,
             reporterEmail,
             string.IsNullOrEmpty(trimmedSource) ? null : trimmedSource,
+            score,
             receivedAt);
 
         feedback.RaiseDomainEvent(new FeedbackReceivedEvent(feedback.Id, productId, category));

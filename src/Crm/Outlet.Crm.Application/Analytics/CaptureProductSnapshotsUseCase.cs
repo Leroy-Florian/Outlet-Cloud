@@ -1,4 +1,5 @@
 using Outlet.Crm.Application.Ports;
+using Outlet.Crm.Application.Releases;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.Products;
 using Outlet.Kernel.Shared;
@@ -11,8 +12,9 @@ public sealed record SnapshotCaptureReport(string Target, bool Succeeded, string
 
 /// <summary>
 /// Capture en une passe les snapshots de tous les packages (NuGet/npm)
-/// et repositories GitHub suivis par un produit. Best-effort : une source
-/// en échec n'empêche pas les autres d'être capturées.
+/// et repositories GitHub suivis par un produit, et synchronise les releases
+/// publiées de chaque repository. Best-effort : une source en échec n'empêche
+/// pas les autres d'être capturées.
 /// </summary>
 public sealed class CaptureProductSnapshotsUseCase(
     IProductRepository products,
@@ -20,6 +22,7 @@ public sealed class CaptureProductSnapshotsUseCase(
     IRepoStatsClient repoStats,
     IDownloadSnapshotRepository downloadSnapshots,
     IRepositorySnapshotRepository repositorySnapshots,
+    IReleaseRepository releases,
     ICurrentDateTimeProvider clock)
     : IUseCase<CaptureProductSnapshotsCommand, IReadOnlyList<SnapshotCaptureReport>>
 {
@@ -79,6 +82,16 @@ public sealed class CaptureProductSnapshotsUseCase(
 
             await repositorySnapshots.AddAsync(snapshot.Value!, cancellationToken);
             reports.Add(new SnapshotCaptureReport($"github:{tracked.Repository.FullName}", true, null));
+        }
+
+        foreach (var tracked in product.Repositories)
+        {
+            var synced = await ReleaseSynchronizer.SyncRepositoryAsync(
+                repoStats, releases, productId, tracked.Repository, cancellationToken);
+
+            reports.Add(synced.IsSuccess
+                ? new SnapshotCaptureReport($"releases:{tracked.Repository.FullName}", true, null)
+                : new SnapshotCaptureReport($"releases:{tracked.Repository.FullName}", false, synced.Error));
         }
 
         return Result.Success<IReadOnlyList<SnapshotCaptureReport>>(reports);

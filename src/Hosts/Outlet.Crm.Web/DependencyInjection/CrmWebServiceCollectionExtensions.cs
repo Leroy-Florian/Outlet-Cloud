@@ -7,6 +7,7 @@ using Outlet.Crm.Application.Organizations;
 using Outlet.Crm.Application.Payments;
 using Outlet.Crm.Application.Products;
 using Outlet.Crm.Application.Prospects;
+using Outlet.Crm.Application.Releases;
 using Outlet.Crm.Application.Traffic;
 using Outlet.Kernel.Shared;
 
@@ -55,6 +56,9 @@ public static class CrmWebServiceCollectionExtensions
         services.AddScoped<ResolveFeedbackUseCase>();
         services.AddScoped<DismissFeedbackUseCase>();
         services.AddScoped<GetFeedbackInboxUseCase>();
+        services.AddScoped<GetNpsUseCase>();
+        services.AddScoped<SyncReleasesUseCase>();
+        services.AddScoped<GetReleasesUseCase>();
         services.AddScoped<EvaluateAlertsUseCase>();
         services.AddScoped<AcknowledgeAlertUseCase>();
         services.AddScoped<GetAlertsUseCase>();

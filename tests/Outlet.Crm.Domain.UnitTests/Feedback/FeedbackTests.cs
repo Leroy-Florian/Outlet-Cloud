@@ -51,6 +51,38 @@ public sealed class FeedbackTests
     }
 
     [Fact]
+    public void Should_HaveNullScore_When_CreatedWithoutScore()
+    {
+        var feedback = CreateFeedback();
+
+        feedback.Score.Should().BeNull();
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(7)]
+    [InlineData(10)]
+    public void Should_KeepScore_When_ScoreIsWithinNpsScale(int score)
+    {
+        var feedback = Domain.Feedback.Feedback.Create(
+            ProductId.New(), FeedbackCategory.Other, "Hello", null, null, score, Now).Value!;
+
+        feedback.Score.Should().Be(score);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(11)]
+    public void Should_Fail_When_ScoreIsOutOfRange(int score)
+    {
+        var result = Domain.Feedback.Feedback.Create(
+            ProductId.New(), FeedbackCategory.Other, "Hello", null, null, score, Now);
+
+        result.IsFailure.Should().BeTrue();
+        result.Error.Should().Be(FeedbackErrors.ScoreOutOfRange);
+    }
+
+    [Fact]
     public void Should_Fail_When_MessageIsBlank()
     {
         var result = Domain.Feedback.Feedback.Create(ProductId.New(), FeedbackCategory.Bug, "   ", null, null, Now);

@@ -2,6 +2,7 @@ using Outlet.Crm.Application.Analytics;
 using Outlet.Crm.Application.UnitTests.Fakes;
 using Outlet.Crm.Domain.Analytics;
 using Outlet.Crm.Domain.Products;
+using Outlet.Crm.Domain.Releases;
 
 namespace Outlet.Crm.Application.UnitTests.Analytics;
 
@@ -13,9 +14,10 @@ public sealed class GetProductDailyDownloadsUseCaseTests
 
     private readonly FakeProductRepository _products = new();
     private readonly FakeDownloadSnapshotRepository _snapshots = new();
+    private readonly FakeReleaseRepository _releases = new();
 
     private GetProductDailyDownloadsUseCase BuildUseCase() =>
-        new(_products, _snapshots, new FixedClock(Now));
+        new(_products, _snapshots, _releases, new FixedClock(Now));
 
     private Product Seed()
     {
@@ -121,5 +123,51 @@ public sealed class GetProductDailyDownloadsUseCaseTests
 
         result.Value!.TotalDownloads.Should().Be(0);
         result.Value.Days.Select(d => d.Downloads).Should().Equal(0, 0);
+    }
+
+    [Fact]
+    public async Task Should_IncludeReleaseMarkersWithinRange_When_ReleasesWereRecorded()
+    {
+        var product = Seed();
+        var repository = RepositoryName.Create("Leroy-Florian/Outlet-CLI").Value!;
+        _releases.Items.Add(ReleaseRecord.Create(product.Id, repository, "v2.0.0", "Two", Now.AddDays(-1)).Value!);
+        _releases.Items.Add(ReleaseRecord.Create(product.Id, repository, "v1.0.0", null, Now.AddDays(-1)).Value!);
+        _releases.Items.Add(ReleaseRecord.Create(product.Id, repository, "v0.9.0", null, Now.AddDays(-40)).Value!);
+        _releases.Items.Add(ReleaseRecord.Create(ProductId.New(), repository, "v9.9.9", null, Now).Value!);
+
+        var result = await BuildUseCase().HandleAsync(
+            new GetProductDailyDownloadsQuery(product.Id.Value, Today.AddDays(-2), Today), CancellationToken.None);
+
+        result.IsSuccess.Should().BeTrue();
+        result.Value!.Releases.Should().Equal(
+            new ReleaseMarker(Today.AddDays(-1), "v1.0.0", "Leroy-Florian/Outlet-CLI"),
+            new ReleaseMarker(Today.AddDays(-1), "v2.0.0", "Leroy-Florian/Outlet-CLI"));
+    }
+
+    [Fact]
+    public async Task Should_IncludeBoundaryReleases_When_PublishedExactlyOnRangeEdges()
+    {
+        var product = Seed();
+        var repository = RepositoryName.Create("Leroy-Florian/Outlet-CLI").Value!;
+        _releases.Items.Add(ReleaseRecord.Create(product.Id, repository, "v1.0.0", null, Now.AddDays(-2)).Value!);
+        _releases.Items.Add(ReleaseRecord.Create(product.Id, repository, "v2.0.0", null, Now).Value!);
+        _releases.Items.Add(ReleaseRecord.Create(product.Id, repository, "v0.1.0", null, Now.AddDays(-3)).Value!);
+        _releases.Items.Add(ReleaseRecord.Create(product.Id, repository, "v3.0.0", null, Now.AddDays(1)).Value!);
+
+        var result = await BuildUseCase().HandleAsync(
+            new GetProductDailyDownloadsQuery(product.Id.Value, Today.AddDays(-2), Today), CancellationToken.None);
+
+        result.Value!.Releases.Select(r => r.TagName).Should().Equal("v1.0.0", "v2.0.0");
+    }
+
+    [Fact]
+    public async Task Should_ReturnEmptyReleaseMarkers_When_NoReleaseFallsInRange()
+    {
+        var product = Seed();
+
+        var result = await BuildUseCase().HandleAsync(
+            new GetProductDailyDownloadsQuery(product.Id.Value, null, null), CancellationToken.None);
+
+        result.Value!.Releases.Should().BeEmpty();
     }
 }

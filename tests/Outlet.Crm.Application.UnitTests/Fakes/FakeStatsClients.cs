@@ -31,9 +31,20 @@ public sealed class FakeRepoStatsClient(Result<RepoStats> result) : IRepoStatsCl
 {
     public List<string> Calls { get; } = [];
 
+    public List<string> ReleaseCalls { get; } = [];
+
+    public Result<IReadOnlyList<RepoRelease>> ReleasesResult { get; set; } =
+        Result.Success<IReadOnlyList<RepoRelease>>([]);
+
     public Task<Result<RepoStats>> GetRepositoryStatsAsync(RepositoryName repository, CancellationToken cancellationToken = default)
     {
         Calls.Add(repository.FullName);
         return Task.FromResult(result);
+    }
+
+    public Task<Result<IReadOnlyList<RepoRelease>>> GetReleasesAsync(RepositoryName repository, CancellationToken cancellationToken = default)
+    {
+        ReleaseCalls.Add(repository.FullName);
+        return Task.FromResult(ReleasesResult);
     }
 }

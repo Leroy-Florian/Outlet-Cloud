@@ -128,12 +128,21 @@ export interface DownloadSourceBreakdownDto {
   readonly days: ReadonlyArray<DailyDownloadPointDto>
 }
 
+/** Release publiée dans la plage du rapport — marqueur vertical sur le graphique. */
+export interface ReleaseMarkerDto {
+  /** "yyyy-MM-dd" */
+  readonly date: string
+  readonly tagName: string
+  readonly repository: string
+}
+
 export interface DailyDownloadReportDto {
   readonly from: string
   readonly to: string
   readonly totalDownloads: number
   readonly days: ReadonlyArray<DailyDownloadPointDto>
   readonly sources: ReadonlyArray<DownloadSourceBreakdownDto>
+  readonly releases: ReadonlyArray<ReleaseMarkerDto>
 }
 
 export interface DailyTrafficPointDto {
@@ -219,6 +228,8 @@ export interface FeedbackItemDto {
   readonly message: string
   readonly reporterEmail: string | null
   readonly sourceApp: string
+  /** Score NPS 0-10, null si non renseigné. */
+  readonly score: number | null
   readonly status: string
   readonly receivedAt: string
 }
@@ -336,6 +347,36 @@ export const captureSnapshots = (productId: string) =>
   )
 
 // ---------------------------------------------------------------------------
+// Releases
+// ---------------------------------------------------------------------------
+
+export interface ReleaseDto {
+  readonly id: string
+  readonly repository: string
+  readonly tagName: string
+  readonly name: string | null
+  readonly publishedAt: string
+}
+
+export interface ReleaseSyncTargetDto {
+  readonly repository: string
+  readonly succeeded: boolean
+  readonly newReleases: number
+  readonly error: string | null
+}
+
+export interface ReleaseSyncSummaryDto {
+  readonly newReleases: number
+  readonly targets: ReadonlyArray<ReleaseSyncTargetDto>
+}
+
+export const listReleases = (productId: string) =>
+  getJson<ReadonlyArray<ReleaseDto>>(`/api/products/${productId}/releases`)
+
+export const syncReleases = (productId: string) =>
+  sendJson<ReleaseSyncSummaryDto>("POST", `/api/products/${productId}/releases/sync`)
+
+// ---------------------------------------------------------------------------
 // Analytics
 // ---------------------------------------------------------------------------
 
@@ -439,6 +480,23 @@ export const resolveFeedback = (feedbackId: string) =>
 
 export const dismissFeedback = (feedbackId: string) =>
   sendJson<void>("POST", `/api/feedback/${feedbackId}/dismiss`)
+
+export interface NpsReportDto {
+  readonly nps: number | null
+  readonly promoters: number
+  readonly passives: number
+  readonly detractors: number
+  readonly total: number
+  readonly days: number
+}
+
+export const getNps = (productId?: string, days?: number) => {
+  const params = new URLSearchParams()
+  if (productId !== undefined) params.set("productId", productId)
+  if (days !== undefined) params.set("days", String(days))
+  const query = params.toString()
+  return getJson<NpsReportDto>(`/api/feedback/nps${query === "" ? "" : `?${query}`}`)
+}
 
 export const listPayments = () => getJson<ReadonlyArray<PaymentDto>>("/api/payments/")
 

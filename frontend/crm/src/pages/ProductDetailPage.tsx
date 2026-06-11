@@ -7,6 +7,8 @@ import {
   getDailyTraffic,
   getRepositoryHistory,
   listProducts,
+  listReleases,
+  syncReleases,
   trackPackage,
   trackRepository,
   untrackPackage,
@@ -22,6 +24,7 @@ import {
   PeriodSelector,
   StatCard,
   TrendBadge,
+  formatDateTime,
   formatNumber,
   lastDaysRange,
 } from "../components/ui"
@@ -57,6 +60,103 @@ const RepositoryHistorySection = ({
         </EmptyState>
       ) : (
         <RepositoryHistoryChart history={history.data} />
+      )}
+    </div>
+  )
+}
+
+/** Releases GitHub du produit + synchronisation manuelle (POST releases/sync). */
+const ReleasesSection = ({
+  productId,
+  onSynced,
+}: {
+  productId: string
+  /** Recharge les analytics (les marqueurs de release du graphique en dépendent). */
+  onSynced: () => void
+}) => {
+  const releases = useQuery(() => listReleases(productId), [productId])
+  const [syncing, setSyncing] = useState(false)
+  const [syncNotice, setSyncNotice] = useState<string | null>(null)
+  const [syncError, setSyncError] = useState<string | null>(null)
+
+  const handleSync = async () => {
+    setSyncing(true)
+    setSyncNotice(null)
+    setSyncError(null)
+    try {
+      const summary = await syncReleases(productId)
+      const failed = summary.targets.filter((t) => !t.succeeded)
+      if (failed.length > 0) {
+        setSyncError(
+          `Synchronisation partielle : ${failed
+            .map((t) => `${t.repository} (${t.error ?? "erreur"})`)
+            .join(", ")}`,
+        )
+      }
+      setSyncNotice(
+        summary.newReleases === 0
+          ? "Aucune nouvelle release."
+          : `${summary.newReleases} nouvelle(s) release(s) importée(s).`,
+      )
+      releases.reload()
+      onSynced()
+    } catch (e) {
+      setSyncError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setSyncing(false)
+    }
+  }
+
+  const sorted = [...(releases.data ?? [])].sort((a, b) =>
+    b.publishedAt.localeCompare(a.publishedAt),
+  )
+
+  return (
+    <div className="card section">
+      <h2 className="card-title">
+        Releases{" "}
+        <button
+          className="btn btn-ghost"
+          style={{ float: "right" }}
+          disabled={syncing}
+          onClick={() => void handleSync()}
+        >
+          {syncing ? "Synchronisation…" : "Synchroniser"}
+        </button>
+      </h2>
+      {syncNotice !== null ? <div className="notice-banner">{syncNotice}</div> : null}
+      {syncError !== null ? <ErrorBanner message={syncError} /> : null}
+      {releases.loading ? (
+        <Loading />
+      ) : releases.error !== null ? (
+        <ErrorBanner message={releases.error} />
+      ) : sorted.length === 0 ? (
+        <EmptyState title="Aucune release">
+          Cliquez sur « Synchroniser » pour importer les releases GitHub des repositories suivis.
+        </EmptyState>
+      ) : (
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Tag</th>
+              <th>Nom</th>
+              <th>Repository</th>
+              <th>Publiée le</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((release) => (
+              <tr key={release.id}>
+                <td>
+                  <span className="badge badge-violet">{release.tagName}</span>
+                </td>
+                <td>{release.name ?? <span className="dim">—</span>}</td>
+                <td className="dim">{release.repository}</td>
+                <td className="dim">{formatDateTime(release.publishedAt)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       )}
     </div>
   )
@@ -386,6 +486,8 @@ export const ProductDetailPage = () => {
           </>
         )}
       </div>
+
+      <ReleasesSection productId={product.id} onSynced={reloadAnalytics} />
 
       {product.repositories.map((repo) => (
         <RepositoryHistorySection key={repo} productId={product.id} repository={repo} />

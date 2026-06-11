@@ -2,6 +2,7 @@ import { useState } from "react"
 import {
   dismissFeedback,
   getFeedbackInbox,
+  getNps,
   listProducts,
   resolveFeedback,
   triageFeedback,
@@ -10,7 +11,9 @@ import {
   type FeedbackStatus,
 } from "../api/client"
 import { useQuery } from "../hooks/useQuery"
-import { EmptyState, ErrorBanner, Loading, formatDateTime } from "../components/ui"
+import { EmptyState, ErrorBanner, Loading, StatCard, formatDateTime } from "../components/ui"
+
+const NPS_DAYS = 90
 
 const STATUS_LABELS: Record<string, string> = {
   New: "Nouveau",
@@ -42,6 +45,19 @@ const CategoryBadge = ({ category }: { category: string }) => {
           : "badge"
   return <span className={className}>{CATEGORY_LABELS[category] ?? category}</span>
 }
+
+/** Chip de score NPS : 9-10 vert (promoteur), 7-8 jaune (passif), 0-6 rouge (détracteur). */
+const ScoreChip = ({ score }: { score: number }) => {
+  const className =
+    score >= 9 ? "badge badge-green" : score >= 7 ? "badge badge-amber" : "badge badge-red"
+  return (
+    <span className={className} title="Score NPS (0-10)">
+      {score}/10
+    </span>
+  )
+}
+
+const npsFormat = new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 })
 
 const StatusBadge = ({ status }: { status: string }) => {
   const className =
@@ -114,7 +130,17 @@ export const FeedbackPage = () => {
     [productId, status, category],
   )
 
+  const globalNps = useQuery(() => getNps(undefined, NPS_DAYS), [])
+  const productNps = useQuery(
+    () => (productId === "" ? Promise.resolve(null) : getNps(productId, NPS_DAYS)),
+    [productId],
+  )
+
   const productName = (id: string) => products.data?.find((p) => p.id === id)?.name ?? id
+
+  const npsValue = (nps: number | null) => (nps === null ? "—" : npsFormat.format(nps))
+  const npsHint = (report: { promoters: number; passives: number; detractors: number }) =>
+    `${report.promoters} promoteur(s) · ${report.passives} passif(s) · ${report.detractors} détracteur(s)`
 
   const runAction = (action: () => Promise<void>) => {
     setBusy(true)
@@ -149,6 +175,23 @@ export const FeedbackPage = () => {
 
       {actionError !== null ? <ErrorBanner message={actionError} /> : null}
       {inbox.error !== null ? <ErrorBanner message={inbox.error} /> : null}
+      {globalNps.error !== null ? <ErrorBanner message={globalNps.error} /> : null}
+      {productNps.error !== null ? <ErrorBanner message={productNps.error} /> : null}
+
+      <div className="card-grid">
+        <StatCard
+          label={`NPS global (${NPS_DAYS} j)`}
+          value={globalNps.data === null ? "…" : npsValue(globalNps.data.nps)}
+          {...(globalNps.data === null ? {} : { hint: npsHint(globalNps.data) })}
+        />
+        {productId !== "" ? (
+          <StatCard
+            label={`NPS — ${productName(productId)} (${NPS_DAYS} j)`}
+            value={productNps.data === null ? "…" : npsValue(productNps.data.nps)}
+            {...(productNps.data === null ? {} : { hint: npsHint(productNps.data) })}
+          />
+        ) : null}
+      </div>
 
       {counts !== null ? (
         <div className="count-chips">
@@ -218,6 +261,7 @@ export const FeedbackPage = () => {
                 <th>Produit</th>
                 <th>Catégorie</th>
                 <th>Message</th>
+                <th>Score</th>
                 <th>Source</th>
                 <th>Reçu le</th>
                 <th>Statut</th>
@@ -236,6 +280,13 @@ export const FeedbackPage = () => {
                     {item.reporterEmail !== null ? (
                       <div className="dim">{item.reporterEmail}</div>
                     ) : null}
+                  </td>
+                  <td>
+                    {item.score !== null ? (
+                      <ScoreChip score={item.score} />
+                    ) : (
+                      <span className="dim">—</span>
+                    )}
                   </td>
                   <td className="dim">{item.sourceApp}</td>
                   <td className="dim">{formatDateTime(item.receivedAt)}</td>

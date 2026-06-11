@@ -8,6 +8,7 @@ import {
   Legend,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -36,9 +37,26 @@ const axisProps = {
   tickLine: false,
 } as const
 
+/**
+ * Marqueurs de release : une ligne verticale par jour de publication (les tags
+ * du même jour partagent une ligne), uniquement sur les dates présentes en axe.
+ */
+const releaseMarkersByDate = (report: DailyDownloadReportDto) => {
+  const chartDates = new Set(report.days.map((d) => d.date))
+  const byDate = new Map<string, string[]>()
+  for (const release of report.releases ?? []) {
+    if (!chartDates.has(release.date)) continue
+    const tags = byDate.get(release.date) ?? []
+    tags.push(release.tagName)
+    byDate.set(release.date, tags)
+  }
+  return [...byDate.entries()].map(([date, tags]) => ({ date, label: tags.join(" · ") }))
+}
+
 /** Téléchargements quotidiens, barres empilées par source (registry:package). */
 export const DailyDownloadsChart = ({ report }: { report: DailyDownloadReportDto }) => {
   const sourceKeys = report.sources.map((s) => `${s.registry}:${s.packageId}`)
+  const markers = releaseMarkersByDate(report)
 
   const rows = report.days.map((day, index) => {
     const row: Record<string, string | number> = { date: day.date }
@@ -64,6 +82,23 @@ export const DailyDownloadsChart = ({ report }: { report: DailyDownloadReportDto
           {keys.length > 1 ? <Legend wrapperStyle={{ fontSize: 12 }} /> : null}
           {keys.map((key, i) => (
             <Bar key={key} dataKey={key} stackId="downloads" fill={PALETTE[i % PALETTE.length]} />
+          ))}
+          {markers.map((marker) => (
+            <ReferenceLine
+              key={marker.date}
+              x={marker.date}
+              stroke="#a78bfa"
+              strokeDasharray="4 4"
+              strokeOpacity={0.55}
+              ifOverflow="discard"
+              label={{
+                value: marker.label,
+                position: "insideTopRight",
+                fill: "#a78bfa",
+                fontSize: 10,
+                opacity: 0.9,
+              }}
+            />
           ))}
         </BarChart>
       </ResponsiveContainer>

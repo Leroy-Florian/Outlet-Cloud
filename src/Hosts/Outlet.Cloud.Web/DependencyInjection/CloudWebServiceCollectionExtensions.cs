@@ -37,6 +37,7 @@ public static class CloudWebServiceCollectionExtensions
         services.AddScoped<CancelSubscriptionUseCase>();
         services.AddScoped<GetEntitlementsUseCase>();
 
+        services.AddHttpClient<CrmFeedbackForwarder>();
         services.AddScoped<OrganizationTokenIssuer>();
         services.AddScoped<PersonalAccessTokenAuthenticator>();
 

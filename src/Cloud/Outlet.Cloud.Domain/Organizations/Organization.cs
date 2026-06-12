@@ -18,6 +18,12 @@ public sealed class Organization : AggregateRoot<OrganizationId>
     public OrganizationSlug Slug { get; }
     public OrganizationName Name { get; }
 
+    /// <summary>
+    /// Whether the registry may be pulled anonymously. Defaults to
+    /// <see cref="RegistryVisibility.Private"/>; publishing stays authenticated either way.
+    /// </summary>
+    public RegistryVisibility RegistryVisibility { get; private set; }
+
     private readonly List<Membership> _memberships;
     public IReadOnlyList<Membership> Memberships => _memberships;
 
@@ -32,6 +38,7 @@ public sealed class Organization : AggregateRoot<OrganizationId>
     {
         Slug = slug;
         Name = name;
+        RegistryVisibility = RegistryVisibility.Private;
         _memberships = [];
     }
 
@@ -56,13 +63,32 @@ public sealed class Organization : AggregateRoot<OrganizationId>
         OrganizationId id,
         OrganizationSlug slug,
         OrganizationName name,
+        RegistryVisibility registryVisibility,
         IEnumerable<(MemberUserId UserId, OrganizationRole Role)> members)
     {
-        var organization = new Organization(id, slug, name);
+        var organization = new Organization(id, slug, name)
+        {
+            RegistryVisibility = registryVisibility,
+        };
         foreach (var (userId, role) in members)
             organization._memberships.Add(new Membership(userId, role));
 
         return organization;
+    }
+
+    /// <summary>
+    /// Opens or closes anonymous read access to the registry. A no-op (no event)
+    /// when the requested visibility is already in force.
+    /// </summary>
+    public Result ChangeRegistryVisibility(RegistryVisibility visibility)
+    {
+        if (RegistryVisibility == visibility)
+            return Result.Success();
+
+        RegistryVisibility = visibility;
+        RaiseDomainEvent(new RegistryVisibilityChangedEvent(Id, visibility));
+
+        return Result.Success();
     }
 
     public Result AddMember(MemberUserId userId, OrganizationRole role)

@@ -62,7 +62,12 @@ public static class OutletCloudEndpoints
         });
     }
 
-    /// <summary>Validates the bearer token + read scope and resolves the org; returns a denial result otherwise.</summary>
+    /// <summary>
+    /// Resolves the org and authorizes the read. A registry whose organization opted into
+    /// <see cref="RegistryVisibility.Public"/> is readable anonymously; anything else (private
+    /// registry, unknown slug) demands a bearer token + read scope first, so an anonymous probe
+    /// cannot distinguish a missing org from a private one. Returns a denial result otherwise.
+    /// </summary>
     private static async Task<(Organization? Org, IResult? Denied)> AuthorizeRead(
         string slug,
         HttpRequest http,
@@ -71,20 +76,21 @@ public static class OutletCloudEndpoints
         SubscriptionEntitlementResolver entitlements,
         CancellationToken ct)
     {
-        var token = await authenticator.AuthenticateAsync(http.Headers.Authorization, ct);
-        if (token is null)
-            return (null, Results.Unauthorized());
-
-        if (!token.Scopes.Contains($"org:{slug}:registry:read"))
-            return (null, Results.StatusCode(StatusCodes.Status403Forbidden));
-
         var slugResult = Guard.TryBuild(() => OrganizationSlug.From(slug), "invalid slug");
-        if (slugResult.IsFailure)
-            return (null, Results.NotFound());
+        var org = slugResult.IsSuccess ? await orgs.GetBySlugAsync(slugResult.Value!, ct) : null;
 
-        var org = await orgs.GetBySlugAsync(slugResult.Value!, ct);
-        if (org is null)
-            return (null, Results.NotFound());
+        if (org is null || org.RegistryVisibility != RegistryVisibility.Public)
+        {
+            var token = await authenticator.AuthenticateAsync(http.Headers.Authorization, ct);
+            if (token is null)
+                return (null, Results.Unauthorized());
+
+            if (!token.Scopes.Contains($"org:{slug}:registry:read"))
+                return (null, Results.StatusCode(StatusCodes.Status403Forbidden));
+
+            if (org is null)
+                return (null, Results.NotFound());
+        }
 
         // The registry is hosted under the owner's plan. Trial/Active/Suspended may still be
         // read (consult/export); only an expired (purged) account loses read access.

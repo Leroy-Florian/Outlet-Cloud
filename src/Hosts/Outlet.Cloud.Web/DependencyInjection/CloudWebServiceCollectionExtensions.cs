@@ -28,6 +28,7 @@ public static class CloudWebServiceCollectionExtensions
         services.AddScoped<CreateOrganizationUseCase>();
         services.AddScoped<AddMemberUseCase>();
         services.AddScoped<ChangeMemberRoleUseCase>();
+        services.AddScoped<ChangeRegistryVisibilityUseCase>();
         services.AddScoped<RemoveMemberUseCase>();
         services.AddScoped<PublishItemUseCase>();
 

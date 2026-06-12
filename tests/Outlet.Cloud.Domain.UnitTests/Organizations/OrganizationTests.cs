@@ -163,4 +163,63 @@ public sealed class OrganizationTests
 
         org.OwnerId.Should().Be(Owner);
     }
+
+    [Fact]
+    public void Should_DefaultToPrivateRegistry_When_Created()
+    {
+        var org = NewOrg();
+
+        org.RegistryVisibility.Should().Be(RegistryVisibility.Private);
+        org.DomainEvents.Should().NotContain(e => e is RegistryVisibilityChangedEvent);
+    }
+
+    [Fact]
+    public void Should_RaiseVisibilityChangedEvent_When_RegistryGoesPublic()
+    {
+        var org = NewOrg();
+
+        var result = org.ChangeRegistryVisibility(RegistryVisibility.Public);
+
+        result.IsSuccess.Should().BeTrue();
+        org.RegistryVisibility.Should().Be(RegistryVisibility.Public);
+        var raised = org.DomainEvents.OfType<RegistryVisibilityChangedEvent>().Single();
+        raised.OrganizationId.Should().Be(AnyId);
+        raised.Visibility.Should().Be(RegistryVisibility.Public);
+    }
+
+    [Fact]
+    public void Should_RaiseVisibilityChangedEvent_When_RegistryGoesBackPrivate()
+    {
+        var org = NewOrg();
+        org.ChangeRegistryVisibility(RegistryVisibility.Public);
+
+        var result = org.ChangeRegistryVisibility(RegistryVisibility.Private);
+
+        result.IsSuccess.Should().BeTrue();
+        org.RegistryVisibility.Should().Be(RegistryVisibility.Private);
+        org.DomainEvents.OfType<RegistryVisibilityChangedEvent>().Should().HaveCount(2);
+    }
+
+    [Fact]
+    public void Should_NotRaiseEvent_When_VisibilityIsUnchanged()
+    {
+        var org = NewOrg();
+        org.ChangeRegistryVisibility(RegistryVisibility.Public);
+
+        var result = org.ChangeRegistryVisibility(RegistryVisibility.Public);
+
+        result.IsSuccess.Should().BeTrue();
+        org.RegistryVisibility.Should().Be(RegistryVisibility.Public);
+        org.DomainEvents.OfType<RegistryVisibilityChangedEvent>().Should().ContainSingle();
+    }
+
+    [Fact]
+    public void Should_RestoreVisibility_When_RehydratedFromPersistence()
+    {
+        var org = Organization.Restore(
+            AnyId, AnySlug, AnyName, RegistryVisibility.Public, [(Owner, OrganizationRole.Owner)]);
+
+        org.RegistryVisibility.Should().Be(RegistryVisibility.Public);
+        org.DomainEvents.Should().BeEmpty();
+    }
 }

@@ -19,6 +19,10 @@ public sealed class CloudDbContext(DbContextOptions<CloudDbContext> options) : D
             builder.Property(o => o.Slug).IsRequired();
             builder.HasIndex(o => o.Slug).IsUnique();
             builder.Property(o => o.Name).IsRequired();
+            builder.Property(o => o.RegistryVisibility)
+                .HasConversion<string>()
+                .IsRequired()
+                .HasDefaultValue(Domain.Organizations.RegistryVisibility.Private);
 
             builder.HasMany(o => o.Members)
                 .WithOne()

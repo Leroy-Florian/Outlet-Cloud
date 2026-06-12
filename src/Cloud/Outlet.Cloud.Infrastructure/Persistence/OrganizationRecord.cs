@@ -12,6 +12,7 @@ public sealed class OrganizationRecord
     public Guid Id { get; set; }
     public string Slug { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
+    public RegistryVisibility RegistryVisibility { get; set; } = RegistryVisibility.Private;
     public List<MembershipRecord> Members { get; set; } = [];
 }
 

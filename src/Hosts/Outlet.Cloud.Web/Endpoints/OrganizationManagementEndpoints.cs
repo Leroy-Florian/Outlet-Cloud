@@ -58,6 +58,7 @@ public static class OrganizationManagementEndpoints
                 organizationId = o.Id.Value,
                 slug = o.Slug.Value,
                 name = o.Name.Value,
+                registryVisibility = o.RegistryVisibility.ToString(),
                 role = RoleOf(o, callerId)?.ToString(),
             }));
         });
@@ -98,6 +99,7 @@ public static class OrganizationManagementEndpoints
                 organizationId = org.Id.Value,
                 slug = org.Slug.Value,
                 name = org.Name.Value,
+                registryVisibility = org.RegistryVisibility.ToString(),
                 role = callerRole.ToString(),
                 members,
             });
@@ -207,6 +209,16 @@ public static class OrganizationManagementEndpoints
             return result.ToHttp();
         });
 
+        group.MapPut("/{organizationId:guid}/registry/visibility", async (Guid organizationId, ChangeRegistryVisibilityBody body, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, IOrganizationRepository orgs, ChangeRegistryVisibilityUseCase change) =>
+        {
+            var (_, _, denied) = await AuthorizeManager(organizationId, principal, users, orgs);
+            if (denied is not null)
+                return denied;
+
+            var result = await change.HandleAsync(new ChangeRegistryVisibilityCommand(organizationId, CallerId(principal, users), body.Visibility));
+            return result.ToHttp();
+        });
+
         group.MapPost("/{organizationId:guid}/registry/items", async (Guid organizationId, PublishItemBody body, ClaimsPrincipal principal, UserManager<OutletIdentityUser> users, IOrganizationRepository orgs, PublishItemUseCase publish) =>
         {
             var (_, _, denied) = await AuthorizeManager(organizationId, principal, users, orgs);
@@ -283,6 +295,9 @@ public sealed record AddMemberByEmailBody(string Email, OrganizationRole Role);
 
 /// <summary>Change a member's role.</summary>
 public sealed record ChangeRoleBody(OrganizationRole Role);
+
+/// <summary>Open or close anonymous read access to the organization's registry.</summary>
+public sealed record ChangeRegistryVisibilityBody(RegistryVisibility Visibility);
 
 /// <summary>Issue a personal access token for the caller, scoped to their role in the organization.</summary>
 public sealed record CreateTokenBody(string Name, DateTime? ExpiresAtUtc);

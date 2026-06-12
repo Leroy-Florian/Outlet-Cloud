@@ -61,6 +61,32 @@ public sealed class EfOrganizationRepositoryTests : IDisposable
     }
 
     [Fact]
+    public async Task Should_PersistRegistryVisibility_OnUpdate()
+    {
+        var organization = NewOrg(Guid.NewGuid());
+        await new EfOrganizationRepository(_db).AddAsync(organization);
+
+        organization.ChangeRegistryVisibility(RegistryVisibility.Public);
+        await new EfOrganizationRepository(_db).UpdateAsync(organization);
+
+        await using var readDb = NewContext();
+        var loaded = await new EfOrganizationRepository(readDb).GetByIdAsync(organization.Id);
+        loaded!.RegistryVisibility.Should().Be(RegistryVisibility.Public);
+    }
+
+    [Fact]
+    public async Task Should_DefaultRegistryVisibilityToPrivate_When_RoundTripped()
+    {
+        var organization = NewOrg(Guid.NewGuid());
+        await new EfOrganizationRepository(_db).AddAsync(organization);
+
+        await using var readDb = NewContext();
+        var loaded = await new EfOrganizationRepository(readDb).GetBySlugAsync(OrganizationSlug.From("acme"));
+
+        loaded!.RegistryVisibility.Should().Be(RegistryVisibility.Private);
+    }
+
+    [Fact]
     public async Task Should_ReportSlugExists_When_OrganizationPersisted()
     {
         await new EfOrganizationRepository(_db).AddAsync(NewOrg(Guid.NewGuid()));

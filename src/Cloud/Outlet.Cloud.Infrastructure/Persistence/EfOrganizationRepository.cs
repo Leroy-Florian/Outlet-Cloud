@@ -59,6 +59,7 @@ public sealed class EfOrganizationRepository(CloudDbContext db) : IOrganizationR
 
         record.Slug = organization.Slug.Value;
         record.Name = organization.Name.Value;
+        record.RegistryVisibility = organization.RegistryVisibility;
 
         db.OrganizationMembers.RemoveRange(record.Members);
         record.Members = [.. organization.Memberships.Select(m => ToRecord(record.Id, m))];
@@ -71,6 +72,7 @@ public sealed class EfOrganizationRepository(CloudDbContext db) : IOrganizationR
             OrganizationId.From(record.Id),
             OrganizationSlug.From(record.Slug),
             OrganizationName.From(record.Name),
+            record.RegistryVisibility,
             [.. record.Members.Select(m => (MemberUserId.From(m.UserId), m.Role))]);
 
     private static OrganizationRecord ToRecord(Organization organization) =>
@@ -79,6 +81,7 @@ public sealed class EfOrganizationRepository(CloudDbContext db) : IOrganizationR
             Id = organization.Id.Value,
             Slug = organization.Slug.Value,
             Name = organization.Name.Value,
+            RegistryVisibility = organization.RegistryVisibility,
             Members = [.. organization.Memberships.Select(m => ToRecord(organization.Id.Value, m))],
         };
 
